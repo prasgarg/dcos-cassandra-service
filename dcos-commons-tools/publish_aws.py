@@ -41,7 +41,7 @@ class AWSPublisher(object):
 
         self._aws_region = os.environ.get('AWS_UPLOAD_REGION', '')
         s3_bucket = os.environ.get('S3_BUCKET', 'infinity-artifacts')
-        s3_dir_path = os.environ.get('S3_DIR_PATH', 'autodelete7d')
+        s3_dir_path = 'dcos-frameworks' #os.environ.get('S3_DIR_PATH', 'dcos-frameworks')
         dir_name = package_version
 
         # sample s3_directory: 'infinity-artifacts/autodelete7d/kafka/20160815-134747-S6vxd0gRQBw43NNy'
