@@ -1,0 +1,97 @@
+<project>
+<actions/>
+<description/>
+<keepDependencies>false</keepDependencies>
+<properties>
+<hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+<com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.21.1">
+<projectUrl>
+https://github.com/adobe-mds/dcos-cassandra-service/
+</projectUrl>
+<displayName/>
+</com.coravy.hudson.plugins.github.GithubProjectProperty>
+</properties>
+<scm class="hudson.plugins.git.GitSCM" plugin="git@2.5.3">
+<configVersion>2</configVersion>
+<userRemoteConfigs>
+<hudson.plugins.git.UserRemoteConfig>
+<url>
+https://github.com/adobe-mds/dcos-cassandra-service
+</url>
+</hudson.plugins.git.UserRemoteConfig>
+</userRemoteConfigs>
+<branches>
+<hudson.plugins.git.BranchSpec>
+<name>*/master</name>
+</hudson.plugins.git.BranchSpec>
+</branches>
+<doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+<submoduleCfg class="list"/>
+<extensions/>
+</scm>
+<assignedNode>mds</assignedNode>
+<canRoam>false</canRoam>
+<disabled>false</disabled>
+<blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+<blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+<triggers>
+<hudson.triggers.SCMTrigger>
+<spec>*/1 * * * *</spec>
+<ignorePostCommitHooks>false</ignorePostCommitHooks>
+</hudson.triggers.SCMTrigger>
+</triggers>
+<concurrentBuild>false</concurrentBuild>
+<builders>
+<hudson.tasks.Shell>
+<command>mkdir gotmp ./buildAndUploadJenkinsWrapper.sh</command>
+</hudson.tasks.Shell>
+</builders>
+<publishers>
+<hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.47">
+<recipientList>prjindal@adobe.com</recipientList>
+<configuredTriggers>
+<hudson.plugins.emailext.plugins.trigger.FailureTrigger>
+<email>
+<subject>$PROJECT_DEFAULT_SUBJECT</subject>
+<body>$PROJECT_DEFAULT_CONTENT</body>
+<recipientProviders>
+<hudson.plugins.emailext.plugins.recipients.DevelopersRecipientProvider/>
+</recipientProviders>
+<attachmentsPattern/>
+<attachBuildLog>false</attachBuildLog>
+<compressBuildLog>false</compressBuildLog>
+<replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+<contentType>project</contentType>
+</email>
+</hudson.plugins.emailext.plugins.trigger.FailureTrigger>
+</configuredTriggers>
+<contentType>default</contentType>
+<defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+<defaultContent>$DEFAULT_CONTENT</defaultContent>
+<attachmentsPattern/>
+<presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+<postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+<attachBuildLog>false</attachBuildLog>
+<compressBuildLog>false</compressBuildLog>
+<replyTo>$DEFAULT_REPLYTO</replyTo>
+<saveOutput>false</saveOutput>
+<disabled>false</disabled>
+</hudson.plugins.emailext.ExtendedEmailPublisher>
+</publishers>
+<buildWrappers>
+<hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+<deleteDirs>false</deleteDirs>
+<cleanupParameter/>
+<externalDelete/>
+</hudson.plugins.ws__cleanup.PreBuildCleanup>
+<hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.4"/>
+<org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper plugin="credentials-binding@1.10">
+<bindings>
+<org.jenkinsci.plugins.credentialsbinding.impl.FileBinding>
+<credentialsId>DCOS_CASSANDRA_FRAMEWORK_MERGE_ENV</credentialsId>
+<variable>DCOS_CASSANDRA_SERVICE_MERGE_ENV</variable>
+</org.jenkinsci.plugins.credentialsbinding.impl.FileBinding>
+</bindings>
+</org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper>
+</buildWrappers>
+</project>
