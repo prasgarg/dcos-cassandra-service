@@ -33,7 +33,7 @@ class AWSPublisher(object):
             package_name,
             input_dir_path,
             artifact_paths,
-            package_version = '1.0.25-3.9'):
+            package_version = os.environ.get('FRAMEWORK_VERSION', '')):
         self._dry_run = os.environ.get('DRY_RUN', '')
         self._pkg_name = package_name
         self._pkg_version = package_version
