@@ -1,5 +1,7 @@
 #!/bin/bash
 
+git checkout origin/master
+git checkout -b master
 
 DEFAULT_BUCKET=mds-dcos
 DEFAULT_REGION=us-east-1
