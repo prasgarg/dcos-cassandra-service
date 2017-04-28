@@ -57,7 +57,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export SCRIPT_DIR=$SCRIPT_DIR
 
 export TMPDIR=$SCRIPT_DIR/$TMPDIR_NAME
-cat $VERSION_FILE_NAME | awk -f readproperties.awk > tempEnv.sh
+cat $VERSION_FILE_NAME | awk -f readProperties.awk > tempEnv.sh
 source tempEnv.sh
 rm tempEnv.sh
 
