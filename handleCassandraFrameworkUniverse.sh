@@ -172,7 +172,7 @@ fi
 
 
 git add version.txt && git commit -m "dcos cassandra framework version updated to ${NEW_FRAMEWORK_VERSION}" && git push origin master
-git checkout -b mds-version-${NEW_FRAMEWORK_VERSION} && git push origin mds-version-${NEW_FRAMEWORK_VERSION} 
+git checkout -b mds-${NEW_FRAMEWORK_VERSION} && git push origin mds-${NEW_FRAMEWORK_VERSION} 
 
 
 # universe version update
@@ -205,8 +205,8 @@ setProperty "universe_version" $NEW_UNIVERSE_VERSION $UNIVERSE_VERSION_FILE_NAME
 
 git status && git add . && git commit -m "Added cassandra universe files for version : ${FRAMEWORK_VERSION}" && git push origin version-3.x
 
-git checkout -b version-mds-${NEW_UNIVERSE_VERSION}
-git push origin version-mds-${NEW_UNIVERSE_VERSION}
+git checkout -b mds-${NEW_UNIVERSE_VERSION}
+git push origin mds-${NEW_UNIVERSE_VERSION}
 export UNIVERSE_VERSION=$NEW_UNIVERSE_VERSION
 echo "universe version${UNIVERSE_VERSION}"
 ./generateUniverseAndUploadToS3.sh
