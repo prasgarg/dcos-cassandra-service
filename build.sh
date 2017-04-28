@@ -54,4 +54,8 @@ _notify_github success "Build succeeded"
   cli/dcos-cassandra/dcos-cassandra-darwin \
   cli/dcos-cassandra/dcos-cassandra-linux \
   cli/dcos-cassandra/dcos-cassandra.exe \
+	resources/${LIB_MESOS_FILE_NAME} \
+	resources/${JRE_FILE_NAME} \
+	resources/changes.txt \
+	cassandra-bin-tmp/apache-cassandra-${FRAMEWORK_PLUS_CASSANDRA_VERSION}-bin-dcos.tar.gz \
   cli/python/dist/*.whl
