@@ -169,6 +169,10 @@ if [ $? -ne 0 ]; then
 fi
 
 
+git add version.txt && git commit -m "dcos cassandra framework version updated to ${NEW_FRAMEWORK_VERSION}" && git push origin master
+git checkout -b mds-version-${NEW_FRAMEWORK_VERSION} && git push mds-version-${NEW_FRAMEWORK_VERSION} 
+
+
 # universe version update
 #
 #
