@@ -1,3 +1,8 @@
+#
+#
+#This file is used to read properties ex: version.txt 
+#
+#
 BEGIN {
     FS="=";
     print "# BEGIN";
