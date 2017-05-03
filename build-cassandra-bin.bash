@@ -116,8 +116,8 @@ cd "cassandra-bin-tmp"
 ###
 # Copy and unpack stock cassandra-bin and verify with downloaded sha1 file
 ###
-cp ${SCRIPT_DIR}/resources/${CASSANDRA_FILE_NAME} .
-cp ${SCRIPT_DIR}/resources/${CASSANDRA_FILE_NAME}.sha1 .
+cp ${SCRIPT_DIR}/resources/largeFiles/${CASSANDRA_FILE_NAME} .
+cp ${SCRIPT_DIR}/resources/largeFiles/${CASSANDRA_FILE_NAME}.sha1 .
  
 
 if [ "$(_sha1sum $CASSANDRA_FILE_NAME | awk '{print $1}')" != "$(cat ${CASSANDRA_FILE_NAME}.sha1)" ]; then
