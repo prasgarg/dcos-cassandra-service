@@ -128,6 +128,19 @@ def run_repair():
     )
 
 
+def _block_on_adminrouter():
+    def get_master_ip():
+        return shakedown.master_ip()
+
+    def is_up(ip):
+        return ip, "Failed to fetch master ip"
+
+    # wait for adminrouter to recover
+    print("Ensuring adminrouter is up...")
+    ip = spin(get_master_ip, is_up)
+    print("Adminrouter is up.  Master IP: {}".format(ip))
+
+
 # install once up-front, reuse install for tests (MUCH FASTER):
 def setup_module():
     unset_ssl_verification()
@@ -183,6 +196,7 @@ def test_master_killed():
     kill_task_with_pattern('mesos-master')
 
     check_health()
+    _block_on_adminrouter()
 
 
 @pytest.mark.recovery
@@ -190,12 +204,14 @@ def test_zk_killed():
     kill_task_with_pattern('zookeeper')
 
     check_health()
+    _block_on_adminrouter()
 
 
 @pytest.mark.recovery
 def test_partition():
     host = get_node_host()
 
+    _block_on_adminrouter()
     shakedown.partition_agent(host)
     shakedown.reconnect_agent(host)
 
