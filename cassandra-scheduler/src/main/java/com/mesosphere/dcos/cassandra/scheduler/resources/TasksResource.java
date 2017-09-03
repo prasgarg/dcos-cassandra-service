@@ -236,11 +236,11 @@ public class TasksResource {
     @ManagedAsync
     public void getHeapStatus(
                     @Suspended final AsyncResponse response) {
-        Map<String, String> map = new HashedMap();
+        Map<String, HashMap> map = new HashedMap();
 
         List<CompletableFuture> completableFutures  = new LinkedList<>();
         for(CassandraDaemonTask task : state.getDaemons().values()) {
-            completableFutures.add((CompletableFuture<String>)client.heapUsage(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+            completableFutures.add((CompletableFuture<HashMap>)client.heapUsage(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
                 map.put(task.getHostname(), status);
             }));
         }

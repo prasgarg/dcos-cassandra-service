@@ -19,12 +19,15 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.management.MemoryUsage;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
 import javax.management.openmbean.TabularData;
+
+import it.unimi.dsi.fastutil.Hash;
 
 public class SchedulerClient {
 
@@ -157,8 +160,8 @@ public class SchedulerClient {
         return get(host(hostname, port), "/v1/cassandra/unreachable", List.class);
     }
 
-    public CompletionStage<String> heapUsage(String hostname, int port) {
-        return get(host(hostname, port), "/v1/cassandra/heapUsage", String.class);
+    public CompletionStage<HashMap> heapUsage(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/heapUsage", HashMap.class);
     }
 
     public CompletionStage<List> compactionHistory(String hostname, int port) {

@@ -26,6 +26,7 @@ import com.mesosphere.dcos.cassandra.executor.CassandraDaemonProcess;
 import com.mesosphere.dcos.cassandra.executor.CassandraExecutor;
 
 import org.apache.cassandra.tools.NodeProbe;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.mesos.Executor;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
 import java.lang.management.MemoryUsage;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +116,7 @@ public class CassandraDaemonController {
     @GET
     @Counted
     @Path("/heapUsage")
-    public String getHeapUsage() {
+    public Map getHeapUsage() {
         NodeProbe probe = getDaemon().getProbe();
         long secondsUp = probe.getUptime() / 1000;
 
@@ -125,13 +127,13 @@ public class CassandraDaemonController {
         long exception = probe.getStorageMetric("Exceptions");
         String load =  probe.getLoadString();
 
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("secondsUp", secondsUp);
-        jsonObject.put("memUsed", memUsed);
-        jsonObject.put("memMax", memMax);
-        jsonObject.put("exceptions", exception);
-        jsonObject.put("load", load);
-        return jsonObject.toString();
+        Map propertyMap = new HashMap();
+        propertyMap.put("secondsUp", secondsUp);
+        propertyMap.put("memUsed", memUsed);
+        propertyMap.put("memMax", memMax);
+        propertyMap.put("exceptions", exception);
+        propertyMap.put("load", load);
+        return propertyMap;
     }
 
     @GET
