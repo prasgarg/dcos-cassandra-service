@@ -15,19 +15,33 @@
  */
 package com.mesosphere.dcos.cassandra.executor.resources;
 
+import static com.google.common.collect.Iterables.toArray;
+
 import com.codahale.metrics.annotation.Counted;
+import com.google.common.collect.Multimap;
 import com.google.inject.Inject;
 import com.mesosphere.dcos.cassandra.common.config.CassandraConfig;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraStatus;
 import com.mesosphere.dcos.cassandra.executor.CassandraDaemonProcess;
 import com.mesosphere.dcos.cassandra.executor.CassandraExecutor;
+
+import org.apache.cassandra.tools.NodeProbe;
 import org.apache.mesos.Executor;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+
+import java.lang.management.MemoryUsage;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * CassandraDaemonController implements the API for remote controll of the
@@ -73,8 +87,14 @@ public class CassandraDaemonController {
     @Counted
     @Path("/status")
     public CassandraStatus getStatus() {
-
         return getDaemon().getStatus();
+    }
+
+    @GET
+    @Counted
+    @Path("/unreachable")
+    public List<String> getUnreachableNodes() {
+        return getDaemon().getProbe().getUnreachableNodes();
     }
 
     /**
@@ -89,4 +109,77 @@ public class CassandraDaemonController {
 
         return getDaemon().getTask().getConfig();
     }
+
+
+    @GET
+    @Counted
+    @Path("/heapUsage")
+    public String getHeapUsage() {
+        NodeProbe probe = getDaemon().getProbe();
+        long secondsUp = probe.getUptime() / 1000;
+
+        // Memory usage
+        MemoryUsage heapUsage = probe.getHeapMemoryUsage();
+        double memUsed = (double) heapUsage.getUsed() / (1024 * 1024);
+        double memMax = (double) heapUsage.getMax() / (1024 * 1024);
+        long exception = probe.getStorageMetric("Exceptions");
+        String load =  probe.getLoadString();
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("secondsUp", secondsUp);
+        jsonObject.put("memUsed", memUsed);
+        jsonObject.put("memMax", memMax);
+        jsonObject.put("exceptions", exception);
+        jsonObject.put("load", load);
+        return jsonObject.toString();
+    }
+
+    @GET
+    @Counted
+    @Path("/compactionHistory")
+    public List getCompactionHistory() {
+        NodeProbe probe = getDaemon().getProbe();
+        List<String> result = new LinkedList<>();
+        TabularData tabularData = probe.getCompactionHistory();
+        if (tabularData.isEmpty())
+        {
+            System.out.printf("There is no compaction history");
+            return result;
+        }
+
+        String format = "%-41s%-19s%-29s%-26s%-15s%-15s%s%n";
+        List<String> indexNames = tabularData.getTabularType().getIndexNames();
+        result.add(String.format(format, toArray(indexNames, Object.class)));
+
+        Set<?> values = tabularData.keySet();
+        for (Object eachValue : values)
+        {
+            List<?> value = (List<?>) eachValue;
+            result.add(String.format(format, toArray(value, Object.class)));
+        }
+        return result;
+    }
+
+    @GET
+    @Counted
+    @Path("/tpstats")
+    public List getCacheStats() {
+        NodeProbe probe = getDaemon().getProbe();
+        Multimap<String, String> threadPools = probe.getThreadPools();
+        List<String> result = new LinkedList<>();
+        for (Map.Entry<String, String> tpool : threadPools.entries()) {
+            result.add(String.format("%-25s%10s%10s%15s%10s%18s%n",
+                            tpool.getValue(),
+                            probe.getThreadPoolMetric(tpool.getKey(), tpool.getValue(), "ActiveTasks"),
+                            probe.getThreadPoolMetric(tpool.getKey(), tpool.getValue(), "PendingTasks"),
+                            probe.getThreadPoolMetric(tpool.getKey(), tpool.getValue(), "CompletedTasks"),
+                            probe.getThreadPoolMetric(tpool.getKey(), tpool.getValue(), "CurrentlyBlockedTasks"),
+                            probe.getThreadPoolMetric(tpool.getKey(), tpool.getValue(), "TotalBlockedTasks")));
+        }
+
+        for (Map.Entry<String, Integer> entry : probe.getDroppedMessages().entrySet())
+            result.add(String.format("%-20s%10s%n", entry.getKey(), entry.getValue()));
+        return result;
+    }
+
 }

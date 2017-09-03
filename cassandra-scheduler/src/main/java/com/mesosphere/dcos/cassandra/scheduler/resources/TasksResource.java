@@ -24,6 +24,9 @@ import com.mesosphere.dcos.cassandra.common.tasks.CassandraDaemonTask;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
 import com.mesosphere.dcos.cassandra.scheduler.CassandraScheduler;
 import com.mesosphere.dcos.cassandra.scheduler.client.SchedulerClient;
+
+import org.apache.commons.collections.map.HashedMap;
+import org.apache.mesos.Log;
 import org.apache.mesos.Protos;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.dcos.Capabilities;
@@ -32,12 +35,22 @@ import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.openmbean.TabularData;
 import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import java.lang.management.MemoryUsage;
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+
 
 @Path("/v1/nodes")
 @Produces(MediaType.APPLICATION_JSON)
@@ -83,6 +96,7 @@ public class TasksResource {
             CassandraDaemonTask task = taskOption.get();
             client.status(task.getHostname(), task.getExecutor().getApiPort()
             ).whenCompleteAsync((status, error) -> {
+                LOGGER.info("prasgarg status api response received - ", status);
                 if (status != null) {
                     response.resume(status);
                 } else {
@@ -103,6 +117,12 @@ public class TasksResource {
         } else {
             throw new NotFoundException();
         }
+    }
+
+    @GET
+    @Path("/info")
+    public List getInfo() {
+        return state.getDaemons().values().stream().map(task -> DaemonInfo.create(task)).collect(Collectors.toList());
     }
 
     @PUT
@@ -186,4 +206,97 @@ public class TasksResource {
     private static Response killResponse(List<String> taskIds) {
         return Response.ok(new JSONArray(taskIds).toString(), MediaType.APPLICATION_JSON).build();
     }
+
+
+    @GET
+    @Path("/list/unreachable")
+    @ManagedAsync
+    public void getStatus(
+                    @Suspended final AsyncResponse response) {
+        Set<String> nodeList = new HashSet<>();
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.unreachable(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+                LOGGER.info("PRASMYTEST:Populating unreach :" + task.getHostname());
+                if (!status.isEmpty())
+                    nodeList.addAll(status);
+            }));
+        }
+        CompletableFuture<Object> allDoneFuture = CompletableFuture.anyOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+        LOGGER.info("PRASMYTEST:Completed any unreach");
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(nodeList);}
+        );
+
+    }
+
+
+    @GET
+    @Path("/list/heapUsage")
+    @ManagedAsync
+    public void getHeapStatus(
+                    @Suspended final AsyncResponse response) {
+        Map<String, String> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<String>)client.heapUsage(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+    @GET
+    @Path("/list/compactionHistory")
+    @ManagedAsync
+    public void getCompactionHistory(
+                    @Suspended final AsyncResponse response) {
+        Map<String, List> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.compactionHistory(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+
+    @GET
+    @Path("/list/tpstats")
+    @ManagedAsync
+    public void getTpStats(
+                    @Suspended final AsyncResponse response) {
+        Map<String, List> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.tpstats(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+
+
+
 }

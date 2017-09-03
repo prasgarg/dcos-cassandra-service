@@ -17,10 +17,14 @@ import org.apache.mesos.config.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.MemoryUsage;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+
+import javax.management.openmbean.TabularData;
 
 public class SchedulerClient {
 
@@ -72,7 +76,7 @@ public class SchedulerClient {
                     .build().toString(), clazz);
         } catch (Throwable t) {
             LOGGER.error(String.format(
-                    "Get request failed: host = %s, path = %s",
+                    "prasgarg Get request failed: host = %s, path = %s",
                     host,
                     path),
                     t);
@@ -147,6 +151,24 @@ public class SchedulerClient {
         return get(host(hostname, port), "/v1/cassandra/status", CassandraStatus
                 .class);
     }
+
+
+    public CompletionStage<List> unreachable(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/unreachable", List.class);
+    }
+
+    public CompletionStage<String> heapUsage(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/heapUsage", String.class);
+    }
+
+    public CompletionStage<List> compactionHistory(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/compactionHistory", List.class);
+    }
+
+    public CompletionStage<List>  tpstats(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/tpstats", List.class);
+    }
+
 
     public CompletionStage<CassandraConfig> configuration(
             String hostname,
