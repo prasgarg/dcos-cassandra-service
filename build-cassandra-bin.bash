@@ -165,7 +165,8 @@ echo "##### Disable JMX_PORT in cassandra-env.sh #####"
 
 # "JMX_PORT=???" => "#DISABLED FOR DC/OS\n#JMX_PORT=???"
 $SED -i "s/\(^JMX_PORT=.*\)/#DISABLED FOR DC\/OS:\n#\1/g" "${CONF_DIR}"/cassandra-env.sh
-
+$SED -i -e "/LOCAL_JMX/s/=yes/=no/g" "${CONF_DIR}"/cassandra-env.sh
+$SED -i -e "/jmxremote.authenticate/s/=true/=false/g" "${CONF_DIR}"/cassandra-env.sh
 _sha1sum "${CONF_DIR}"/* &> confdir-after.txt || true
 
 ###
