@@ -297,6 +297,52 @@ public class TasksResource {
     }
 
 
+    @GET
+    @Path("/list/cfstats")
+    @ManagedAsync
+    public void getCfStats(
+                    @Suspended final AsyncResponse response, @QueryParam("keyspace") final String keyspace,@QueryParam("table") final String table) {
+        Map<String, List> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.cfstats(task.getHostname(), task.getExecutor().getApiPort(), keyspace, table).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+
+    @GET
+    @Path("/list/cfhistograms")
+    @ManagedAsync
+    public void getCfHistograms(
+                    @Suspended final AsyncResponse response, @QueryParam("keyspace") final String keyspace,@QueryParam("table") final String table) {
+        Map<String, List> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.cfhistograms(task.getHostname(), task.getExecutor().getApiPort(), keyspace, table).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+
 
 
 }

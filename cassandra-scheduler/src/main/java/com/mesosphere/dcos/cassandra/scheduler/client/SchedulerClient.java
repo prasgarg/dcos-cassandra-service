@@ -5,14 +5,18 @@ import com.mesosphere.dcos.cassandra.common.config.CassandraConfig;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraStatus;
 import com.mesosphere.dcos.cassandra.scheduler.seeds.DataCenterInfo;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.mesos.config.SerializationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +24,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.management.MemoryUsage;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -87,6 +93,41 @@ public class SchedulerClient {
         }
     }
 
+    private <T> CompletionStage<T> get(String host,
+                    String path,
+                    Class<T> clazz, Map<String, String> params) {
+
+        try {
+            return get(addParams(new URIBuilder()
+                            .setScheme(SCHEME)
+                            .setHost(host)
+                            .setPath(path)
+                            .build().toString(), params), clazz);
+        } catch (Throwable t) {
+            LOGGER.error(String.format(
+                            "prasgarg Get request failed: host = %s, path = %s",
+                            host,
+                            path),
+                            t);
+            return failure(t);
+        }
+    }
+
+    private String addParams(String url,  Map<String, String> paramMap){
+        if(!url.endsWith("?"))
+            url += "?";
+
+        List<NameValuePair> params = new LinkedList<NameValuePair>();
+
+        for(Map.Entry<String, String> entry: paramMap.entrySet()) {
+            params.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+        }
+        String paramString = URLEncodedUtils.format(params, "utf-8");
+
+        url += paramString;
+        return url;
+    }
+
     private <T> CompletionStage<T> get(String url, Class<T>
             clazz) {
         LOGGER.debug("Executing get: url = {}", url);
@@ -119,6 +160,7 @@ public class SchedulerClient {
         });
         return promise;
     }
+
 
     private CompletionStage<Boolean> put(String url, Object json) {
         LOGGER.debug("Executing put: url = {}, data = {}", url, json);
@@ -170,6 +212,21 @@ public class SchedulerClient {
 
     public CompletionStage<List>  tpstats(String hostname, int port) {
         return get(host(hostname, port), "/v1/cassandra/tpstats", List.class);
+    }
+
+
+    public CompletionStage<List>  cfstats(String hostname, int port, String keyspace, String table) {
+        Map<String, String> paramMap = new HashMap<>();
+        paramMap.put("keyspace", keyspace);
+        paramMap.put("table", table);
+        return get(host(hostname, port), "/v1/cassandra/cfstats", List.class, paramMap);
+    }
+
+    public CompletionStage<List>  cfhistograms(String hostname, int port, String keyspace, String table) {
+        Map<String, String> paramMap = new HashMap<>();
+        paramMap.put("keyspace", keyspace);
+        paramMap.put("table", table);
+        return get(host(hostname, port), "/v1/cassandra/cfhistograms", List.class, paramMap);
     }
 
 
