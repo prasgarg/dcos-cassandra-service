@@ -48,10 +48,10 @@ public class MdsItestManageResource {
     @PUT
     @Path("/keyspace/{keyspace}/{replicationFactor}")
     public Response alterKeyspace(@PathParam("keyspace") final String keyspace,@PathParam("replicationFactor") final String replicationFactor,
-                    AlterSystemAuthRequest alterSysteAuthRequest) throws ConfigStoreException {
+    		CassandraAuth cassandraAuth) throws ConfigStoreException {
       
 
-        try (Session session = getSession(alterSysteAuthRequest.getCassandraAuth())) {
+        try (Session session = getSession(cassandraAuth)) {
             // session = getSession(alterSysteAuthRequest.getCassandraAuth());
             
             String query = "ALTER KEYSPACE "+keyspace + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': "+replicationFactor+"};";
