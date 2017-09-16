@@ -343,6 +343,29 @@ public class TasksResource {
     }
 
 
+    @GET
+    @Path("/list/proxyhistograms")
+    @ManagedAsync
+    public void getProxyHistograms(
+                    @Suspended final AsyncResponse response) {
+        Map<String, List> map = new HashedMap();
+
+        List<CompletableFuture> completableFutures  = new LinkedList<>();
+        for(CassandraDaemonTask task : state.getDaemons().values()) {
+            completableFutures.add((CompletableFuture<List>)client.proxyhistograms(task.getHostname(), task.getExecutor().getApiPort()).whenCompleteAsync((status, error) -> {
+                map.put(task.getHostname(), status);
+            }));
+        }
+
+        CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[completableFutures.size()]));
+
+        allDoneFuture.thenAccept(
+                        (result) -> {response.resume(map);}
+        );
+
+    }
+
+
 
 
 }

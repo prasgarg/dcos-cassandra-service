@@ -214,6 +214,10 @@ public class SchedulerClient {
         return get(host(hostname, port), "/v1/cassandra/tpstats", List.class);
     }
 
+    public CompletionStage<List>  proxyhistograms(String hostname, int port) {
+        return get(host(hostname, port), "/v1/cassandra/proxyhistograms", List.class);
+    }
+
 
     public CompletionStage<List>  cfstats(String hostname, int port, String keyspace, String table) {
         Map<String, String> paramMap = new HashMap<>();

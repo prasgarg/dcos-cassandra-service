@@ -483,4 +483,25 @@ public class CassandraDaemonController {
         return result;
 
     }
+
+    @GET
+    @Counted
+    @Path("/proxyhistograms")
+    public List getProxyHistograms() {
+        NodeProbe probe = getDaemon().getProbe();
+        List<String> result = new LinkedList<>();
+        String[] percentiles = new String[]{"50%", "75%", "95%", "98%", "99%", "Min", "Max"};
+        double[] readLatency = probe.metricPercentilesAsArray(probe.getProxyMetric("Read"));
+        double[] writeLatency = probe.metricPercentilesAsArray(probe.getProxyMetric("Write"));
+        double[] rangeLatency = probe.metricPercentilesAsArray(probe.getProxyMetric("RangeSlice"));
+
+        result.add(String.format("%-10s%18s%18s%18s", "Percentile", "Read Latency", "Write Latency", "Range Latency"));
+        result.add(String.format("%-10s%18s%18s%18s", "", "(micros)", "(micros)", "(micros)"));
+        for (int i = 0; i < percentiles.length; i++)
+        {
+            result.add(String.format("%-10s%18.2f%18.2f%18.2f", percentiles[i], readLatency[i], writeLatency[i], rangeLatency[i]));
+        }
+        return result;
+    }
+
 }
