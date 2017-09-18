@@ -32,51 +32,52 @@ import com.mesosphere.dcos.cassandra.scheduler.resources.ConnectionResource;
 @Consumes(MediaType.APPLICATION_JSON)
 public class MdsItestManageResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MdsItestManageResource.class);
-    private final ConfigurationManager configurationManager;
-    private final Capabilities capabilities;
-    private final CassandraState state;
-    
-    @Inject
-    public MdsItestManageResource(Capabilities capabilities, CassandraState state,
-                    ConfigurationManager configurationManager) {
-        this.configurationManager = configurationManager;
-        this.capabilities = capabilities;
-        this.state = state;
-    }
+	private final ConfigurationManager configurationManager;
+	private final Capabilities capabilities;
+	private final CassandraState state;
 
+	@Inject
+	public MdsItestManageResource(Capabilities capabilities, CassandraState state,
+			ConfigurationManager configurationManager) {
+		this.configurationManager = configurationManager;
+		this.capabilities = capabilities;
+		this.state = state;
+	}
 
-    @PUT
-    @Path("/keyspace/{keyspace}/{replicationFactor}")
-    public Response alterKeyspace(@PathParam("keyspace") final String keyspace,@PathParam("replicationFactor") final String replicationFactor,
-    		CassandraAuth cassandraAuth) throws ConfigStoreException {
-      
+	@PUT
+	@Path("/keyspace/{keyspace}/{replicationFactor}")
+	public Response alterKeyspace(@PathParam("keyspace") final String keyspace,
+			@PathParam("replicationFactor") final String replicationFactor, CassandraAuth cassandraAuth)
+			throws ConfigStoreException {
 
-        try (Session session = getSession(cassandraAuth)) {
-            // session = getSession(alterSysteAuthRequest.getCassandraAuth());
-            
-            String query = "ALTER KEYSPACE "+keyspace + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': "+replicationFactor+"};";
-            LOGGER.info("Alter keyspace query:" + query);
+		try (Session session = getSession(cassandraAuth)) {
 
-            session.execute(query);
-        } catch (Exception e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
-        }
+			// session = getSession(alterSysteAuthRequest.getCassandraAuth());
 
-        return Response.status(Response.Status.OK).entity("Successfull").build();
-    }
+			String query = "ALTER KEYSPACE " + keyspace
+					+ " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': " + replicationFactor
+					+ "};";
+			LOGGER.info("Alter keyspace query:" + query);
 
+			session.execute(query);
+		} catch (Exception e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		}
 
-    private Session getSession(CassandraAuth cassandraAuth) throws ConfigStoreException {
-        final ConnectionResource connectionResource = new ConnectionResource(capabilities, state, configurationManager);
-        List<String> connectedNodes = connectionResource.connectAddress();
-        String conectionInfo = connectedNodes.get(0);
-        String[] hostAndPort = conectionInfo.split(":");
-        LOGGER.debug("connected node:" + hostAndPort);
+		return Response.status(Response.Status.OK).entity("Successfull").build();
+	}
 
-        InetSocketAddress addresses = new InetSocketAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
-        Cluster cluster = Cluster.builder().addContactPointsWithPorts(addresses)
-                        .withCredentials(cassandraAuth.getUsername(), cassandraAuth.getPassword()).build();
-        Session session = cluster.connect();
-        return session;
-    }
+	private Session getSession(CassandraAuth cassandraAuth) throws ConfigStoreException {
+		final ConnectionResource connectionResource = new ConnectionResource(capabilities, state, configurationManager);
+		List<String> connectedNodes = connectionResource.connectAddress();
+		String conectionInfo = connectedNodes.get(0);
+		String[] hostAndPort = conectionInfo.split(":");
+		LOGGER.debug("connected node:" + hostAndPort);
+
+		InetSocketAddress addresses = new InetSocketAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+		Cluster cluster = Cluster.builder().addContactPointsWithPorts(addresses)
+				.withCredentials(cassandraAuth.getUsername(), cassandraAuth.getPassword()).build();
+		Session session = cluster.connect();
+		return session;
+	}
 }
