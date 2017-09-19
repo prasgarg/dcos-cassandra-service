@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.datastax.driver.core.exceptions.QueryExecutionException;
+import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.mesosphere.dcos.cassandra.common.config.ConfigurationManager;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
 import com.mesosphere.dcos.cassandra.scheduler.resources.ConnectionResource;
@@ -45,23 +48,27 @@ public class MdsItestManageResource {
 	}
 
 	@PUT
-	@Path("/keyspace/{keyspace}/{replicationFactor}")
+	@Path("/keyspace/{keyspace}")
 	public Response alterKeyspace(@PathParam("keyspace") final String keyspace,
-			@PathParam("replicationFactor") final String replicationFactor, CassandraAuth cassandraAuth)
-			throws ConfigStoreException {
+			AlterSystemAuthRequest alterSysteAuthRequest) throws ConfigStoreException {
 
-		try (Session session = getSession(cassandraAuth)) {
-
+		try (Session session = getSession(alterSysteAuthRequest.getCassandraAuth())) {
 			// session = getSession(alterSysteAuthRequest.getCassandraAuth());
-
-			String query = "ALTER KEYSPACE " + keyspace
-					+ " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': " + replicationFactor
-					+ "};";
-			LOGGER.info("Alter keyspace query:" + query);
+			String dcRf = MdsCassandraUtills
+					.getDataCenterVsReplicationFactorString(alterSysteAuthRequest.getDataCenterVsReplicationFactor());
+			String query = "ALTER KEYSPACE " + keyspace + " WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', "
+					+ dcRf + "};";
+			LOGGER.info("Alter keyspace1 query:" + query);
 
 			session.execute(query);
-		} catch (Exception e) {
+		} catch (NoHostAvailableException e) {
+			return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(e.getMessage()).build();
+		} catch (QueryExecutionException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		} catch (QueryValidationException e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 
 		return Response.status(Response.Status.OK).entity("Successfull").build();
