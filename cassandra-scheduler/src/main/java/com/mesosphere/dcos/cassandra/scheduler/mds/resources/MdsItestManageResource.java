@@ -35,42 +35,44 @@ import com.mesosphere.dcos.cassandra.scheduler.resources.ConnectionResource;
 @Consumes(MediaType.APPLICATION_JSON)
 public class MdsItestManageResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MdsItestManageResource.class);
-    private final ConfigurationManager configurationManager;
-    private final Capabilities capabilities;
-    private final CassandraState state;
-    
-    @Inject
-    public MdsItestManageResource(Capabilities capabilities, CassandraState state,
-                    ConfigurationManager configurationManager) {
-        this.configurationManager = configurationManager;
-        this.capabilities = capabilities;
-        this.state = state;
-    }
+	private final ConfigurationManager configurationManager;
+	private final Capabilities capabilities;
+	private final CassandraState state;
+
+	@Inject
+	public MdsItestManageResource(Capabilities capabilities, CassandraState state,
+			ConfigurationManager configurationManager) {
+		this.configurationManager = configurationManager;
+		this.capabilities = capabilities;
+		this.state = state;
+	}
+
+	@PUT
+	@Path("/keyspace/{keyspace}")
+	public Response alterKeyspace(@PathParam("keyspace") final String keyspace,
+			AlterSystemAuthRequest alterSysteAuthRequest) throws ConfigStoreException {
+
+		try (Session session = MdsCassandraUtills.getSession(alterSysteAuthRequest.getCassandraAuth(), capabilities, state, configurationManager)) {
+			// session = getSession(alterSysteAuthRequest.getCassandraAuth());
+			String dcRf = MdsCassandraUtills
+					.getDataCenterVsReplicationFactorString(alterSysteAuthRequest.getDataCenterVsReplicationFactor());
+			String query = "ALTER KEYSPACE " + keyspace + " WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', "
+					+ dcRf + "};";
+			LOGGER.info("Alter keyspace1 query:" + query);
+
+			session.execute(query);
+		} catch (NoHostAvailableException e) {
+			return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(e.getMessage()).build();
+		} catch (QueryExecutionException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		} catch (QueryValidationException e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+
+		return Response.status(Response.Status.OK).entity("Successfull").build();
+	}
 
 
-    @PUT
-    @Path("/keyspace/{keyspace}/{replicationFactor}")
-    public Response alterKeyspace(@PathParam("keyspace") final String keyspace,@PathParam("replicationFactor") final String replicationFactor,
-    		CassandraAuth cassandraAuth) throws ConfigStoreException {
-      
-
-        try (Session session = MdsCassandraUtills.getSession(cassandraAuth, capabilities, state, configurationManager)) {
-            // session = getSession(alterSysteAuthRequest.getCassandraAuth());
-            
-            String query = "ALTER KEYSPACE "+keyspace + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': "+replicationFactor+"};";
-            LOGGER.info("Alter keyspace query:" + query);
-
-            session.execute(query);
-        } catch (NoHostAvailableException e) {
-            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(e.getMessage()).build();
-        }catch(QueryExecutionException  e){
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-        }catch(QueryValidationException e){
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
-        }catch(Exception e){
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-        }
-
-        return Response.status(Response.Status.OK).entity("Successfull").build();
-    }
 }
