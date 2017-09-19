@@ -52,7 +52,7 @@ public class MdsItestManageResource {
 	public Response alterKeyspace(@PathParam("keyspace") final String keyspace,
 			AlterSystemAuthRequest alterSysteAuthRequest) throws ConfigStoreException {
 
-		try (Session session = getSession(alterSysteAuthRequest.getCassandraAuth())) {
+		try (Session session = MdsCassandraUtills.getSession(alterSysteAuthRequest.getCassandraAuth(), capabilities, state, configurationManager)) {
 			// session = getSession(alterSysteAuthRequest.getCassandraAuth());
 			String dcRf = MdsCassandraUtills
 					.getDataCenterVsReplicationFactorString(alterSysteAuthRequest.getDataCenterVsReplicationFactor());
@@ -74,17 +74,5 @@ public class MdsItestManageResource {
 		return Response.status(Response.Status.OK).entity("Successfull").build();
 	}
 
-	private Session getSession(CassandraAuth cassandraAuth) throws ConfigStoreException {
-		final ConnectionResource connectionResource = new ConnectionResource(capabilities, state, configurationManager);
-		List<String> connectedNodes = connectionResource.connectAddress();
-		String conectionInfo = connectedNodes.get(0);
-		String[] hostAndPort = conectionInfo.split(":");
-		LOGGER.debug("connected node:" + hostAndPort);
 
-		InetSocketAddress addresses = new InetSocketAddress(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
-		Cluster cluster = Cluster.builder().addContactPointsWithPorts(addresses)
-				.withCredentials(cassandraAuth.getUsername(), cassandraAuth.getPassword()).build();
-		Session session = cluster.connect();
-		return session;
-	}
 }
