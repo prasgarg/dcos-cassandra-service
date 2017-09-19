@@ -1,5 +1,3 @@
-import json
-import dcos
 import pytest
 import time
 
@@ -270,7 +268,7 @@ def test_node_is_replaced():
 
         return shakedown.run_command_on_agent(
             node1_host,
-            "docker run -t --net=host pitrho/cassandra-nodetool nodetool -p 7199 status"
+            "sudo docker run -t --net=host pitrho/cassandra-nodetool nodetool -p 7199 status"
         )
 
     def success_predicate(status):
