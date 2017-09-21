@@ -1,7 +1,7 @@
 ---
 trickle_fsync: false
 row_cache_save_period: 0
-rpc_address: "10.41.121.118"
+rpc_address: "192.168.2.103"
 num_tokens: 256
 read_request_timeout_in_ms: 5000
 rpc_max_threads: 0
@@ -16,7 +16,7 @@ rpc_send_buff_size_in_bytes: 0
 concurrent_compactors: 0
 buffer_pool_use_heap_if_exhausted: false
 concurrent_materialized_view_writes: 32
-listen_address: "10.41.121.118"
+listen_address: "192.168.2.103"
 commitlog_total_space_in_mb: 8192
 native_transport_max_concurrent_connections_per_ip: 0
 rpc_keepalive: true

@@ -98,7 +98,7 @@ def marathon_launch_app(marathon_url, app_id, cmd, instances=1, packages=[], env
     for k,v in env.items():
         formatted_env[str(k)] = str(v)
     post_json = {
-        "id": app_id,
+        "id": "t",
         "container": {
             "type": "MESOS",
         },
