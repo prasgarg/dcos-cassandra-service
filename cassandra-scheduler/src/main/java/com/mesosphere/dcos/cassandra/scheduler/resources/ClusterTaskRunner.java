@@ -10,7 +10,7 @@ import com.mesosphere.dcos.cassandra.common.tasks.ClusterTaskManager;
 import com.mesosphere.dcos.cassandra.common.tasks.ClusterTaskRequest;
 
 /**
- * Common code for starting/stopping Cleanup, Repair, Backup, and Restore tasks.
+ * Common code for starting/stopping Cleanup, Repair, Backup, Restore and Compact tasks.
  */
 class ClusterTaskRunner<R extends ClusterTaskRequest, C extends ClusterTaskContext> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTaskRunner.class);

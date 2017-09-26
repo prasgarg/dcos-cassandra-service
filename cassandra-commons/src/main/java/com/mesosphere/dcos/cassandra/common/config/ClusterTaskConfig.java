@@ -21,7 +21,7 @@ import com.mesosphere.dcos.cassandra.common.util.JsonUtils;
 
 /**
  * Configuration object for Cassandra ClusterTasks (e.g. Cleanup, Repair,
- * Backup, Restore). It aggregates the memory, cpu, and disk allocated for
+ * Backup, Restore, Compact). It aggregates the memory, cpu, and disk allocated for
  * these tasks.
  */
 public class ClusterTaskConfig {

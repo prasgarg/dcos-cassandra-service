@@ -1,18 +1,6 @@
-/*
- * Copyright 2016 Mesosphere
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
 package com.mesosphere.dcos.cassandra.executor.tasks;
 
-import com.mesosphere.dcos.cassandra.common.tasks.cleanup.CleanupTask;
+import com.mesosphere.dcos.cassandra.common.tasks.compact.CompactTask;
 import com.mesosphere.dcos.cassandra.executor.CassandraDaemonProcess;
 import org.apache.mesos.ExecutorDriver;
 import org.apache.mesos.Protos;
@@ -27,26 +15,26 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 
 /**
- * Implements the execution of CleanupTask for the node invoking the cleanup methods of the CassandraDaemonProcess for
- * the key spaces and column families indicated by the task.
+ * @author akshijai
+ *
  */
-public class Cleanup implements ExecutorTask {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Cleanup.class);
+public class Compact implements ExecutorTask {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Compact.class);
 
     private final CassandraDaemonProcess daemon;
     private final ExecutorDriver driver;
-    private final CleanupTask task;
+    private final CompactTask task;
 
     private List<String> getKeySpaces() {
-        if (task.getCleanupContext().getKeySpaces().isEmpty()) {
+        if (task.getCompactContext().getKeySpaces().isEmpty()) {
             return daemon.getNonSystemKeySpaces();
         } else {
-            return task.getCleanupContext().getKeySpaces();
+            return task.getCompactContext().getKeySpaces();
         }
     }
 
     private List<String> getColumnFamilies() {
-        return task.getCleanupContext().getColumnFamilies();
+        return task.getCompactContext().getColumnFamilies();
     }
 
     private void sendStatus(ExecutorDriver driver, Protos.TaskState state, String message) {
@@ -55,13 +43,13 @@ public class Cleanup implements ExecutorTask {
     }
 
     /**
-     * Construct a new Cleanup.
+     * Construct a new Compact.
      *
      * @param driver The ExecutorDriver used to send task status.
-     * @param daemon The CassandraDaemonProcess used to cleanup the node.
-     * @param task The CleanupTask executed by the Cleanup.
+     * @param daemon The CassandraDaemonProcess used to compact the node.
+     * @param task The CompactTask executed by the Compact.
      */
-    public Cleanup(final ExecutorDriver driver, final CassandraDaemonProcess daemon, final CleanupTask task) {
+    public Compact(final ExecutorDriver driver, final CassandraDaemonProcess daemon, final CompactTask task) {
         this.driver = driver;
         this.daemon = daemon;
         this.task = task;
@@ -74,29 +62,29 @@ public class Cleanup implements ExecutorTask {
             final List<String> keySpaces = getKeySpaces();
             final List<String> columnFamilies = getColumnFamilies();
             sendStatus(driver, Protos.TaskState.TASK_RUNNING, String.format(
-                            "Starting cleanup: keySpaces = %s, " + "columnFamilies = %s", keySpaces, columnFamilies));
+                            "Starting compact: keySpaces = %s, " + "columnFamilies = %s", keySpaces, columnFamilies));
 
             for (String keyspace : keySpaces) {
-                LOGGER.info("Starting cleanup : keySpace = {}, " + "columnFamilies = {}", keyspace,
+                LOGGER.info("Starting compact : keySpace = {}, " + "columnFamilies = {}", keyspace,
                                 Arrays.asList(columnFamilies));
 
-                daemon.cleanup(keyspace, columnFamilies);
+                daemon.compact(keyspace, columnFamilies);
 
-                LOGGER.info("Completed cleanup : keySpace = {}, " + "columnFamilies = {}", keyspace,
+                LOGGER.info("Completed compact : keySpace = {}, " + "columnFamilies = {}", keyspace,
                                 Arrays.asList(columnFamilies));
             }
 
             sendStatus(driver, Protos.TaskState.TASK_FINISHED,
-                            String.format("Completed cleanup: keySpaces = %s, " + "columnFamilies = %s", keySpaces,
+                            String.format("Completed compact: keySpaces = %s, " + "columnFamilies = %s", keySpaces,
                                             Arrays.asList(columnFamilies)));
         } catch (IOException e) {
-            LOGGER.error("Cleanup failed Keyspace not valid:", e);
+            LOGGER.error("Compact failed Keyspace not valid:", e);
             sendStatus(driver, Protos.TaskState.TASK_FAILED, e.getMessage());
         } catch (IllegalArgumentException e) {
-            LOGGER.error("Cleanup failed Table not part of keyspace:", e);
+            LOGGER.error("Compact failed Table not part of keyspace:", e);
             sendStatus(driver, Protos.TaskState.TASK_FAILED, e.getMessage());
         } catch (final Throwable t) {
-            LOGGER.error("Cleanup failed", t);
+            LOGGER.error("Compact failed", t);
             sendStatus(driver, Protos.TaskState.TASK_FAILED, t.getMessage());
         }
     }

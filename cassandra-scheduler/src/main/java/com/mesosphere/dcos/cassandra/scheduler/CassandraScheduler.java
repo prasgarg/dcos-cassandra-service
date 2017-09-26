@@ -22,6 +22,7 @@ import com.mesosphere.dcos.cassandra.scheduler.plan.backup.BackupManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.backup.RestoreManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.cleanup.CleanupManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.repair.RepairManager;
+import com.mesosphere.dcos.cassandra.scheduler.plan.compact.CompactManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.upgradesstable.UpgradeSSTableManager;
 import com.mesosphere.dcos.cassandra.scheduler.resources.*;
 import com.mesosphere.dcos.cassandra.scheduler.seeds.SeedsManager;
@@ -74,6 +75,7 @@ public class CassandraScheduler implements Scheduler, Observer {
     private final CleanupManager cleanup;
     private final RepairManager repair;
     private final UpgradeSSTableManager upgrade;
+    private final CompactManager compact;
     private final boolean enableUpgradeSSTableEndpoint;
     private final SeedsManager seeds;
     private final ScheduledExecutorService executor;
@@ -108,6 +110,7 @@ public class CassandraScheduler implements Scheduler, Observer {
             final CleanupManager cleanup,
             final RepairManager repair,
             final UpgradeSSTableManager upgrade,
+            final CompactManager compact,
             @Named("ConfiguredEnableUpgradeSSTableEndpoint") boolean enableUpgradeSSTableEndpoint,
             final SeedsManager seeds,
             final ScheduledExecutorService executor,
@@ -131,6 +134,7 @@ public class CassandraScheduler implements Scheduler, Observer {
         this.cleanup = cleanup;
         this.repair = repair;
         this.upgrade = upgrade;
+        this.compact = compact;
         this.enableUpgradeSSTableEndpoint = enableUpgradeSSTableEndpoint;
         this.seeds = seeds;
         this.executor = executor;
@@ -173,7 +177,7 @@ public class CassandraScheduler implements Scheduler, Observer {
                     CassandraDaemonPhase.create(
                             cassandraState, offerRequirementProvider, client, defaultConfigurationManager),
                     Arrays.asList(
-                            backup, restore, cleanup, repair, upgrade));
+                            backup, restore, cleanup, repair, upgrade, compact));
             plan.subscribe(this);
             planManager = new DefaultPlanManager(plan);
             reconciler.start();
@@ -193,6 +197,7 @@ public class CassandraScheduler implements Scheduler, Observer {
                     new CleanupResource(cleanup),
                     new RepairResource(repair),
                     new UpgradeSSTableResource(upgrade, enableUpgradeSSTableEndpoint),
+                    new CompactResource(compact),
                     new DataCenterResource(seeds),
                     new ConnectionResource(capabilities, cassandraState, configurationManager),
                     // TODO(nick) rename upstream to StringPropertyDeserializer:

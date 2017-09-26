@@ -16,6 +16,8 @@ import com.mesosphere.dcos.cassandra.common.tasks.cleanup.CleanupContext;
 import com.mesosphere.dcos.cassandra.common.tasks.cleanup.CleanupTask;
 import com.mesosphere.dcos.cassandra.common.tasks.repair.RepairContext;
 import com.mesosphere.dcos.cassandra.common.tasks.repair.RepairTask;
+import com.mesosphere.dcos.cassandra.common.tasks.compact.CompactContext;
+import com.mesosphere.dcos.cassandra.common.tasks.compact.CompactTask;
 import com.mesosphere.dcos.cassandra.common.tasks.upgradesstable.UpgradeSSTableContext;
 import com.mesosphere.dcos.cassandra.common.tasks.upgradesstable.UpgradeSSTableTask;
 import io.dropwizard.lifecycle.Managed;
@@ -189,6 +191,14 @@ public class CassandraState extends SchedulerState implements Managed {
                 .getType() == CassandraTask.TYPE.UPGRADESSTABLE).collect
                 (Collectors.toMap(entry -> entry.getKey(), entry -> (
                         (UpgradeSSTableTask) entry.getValue())));
+    }
+    
+    public Map<String, CompactTask> getCompactTasks() {
+        refreshTasks();
+        return tasks.entrySet().stream().filter(entry -> entry.getValue()
+                .getType() == CassandraTask.TYPE.COMPACT).collect
+                (Collectors.toMap(entry -> entry.getKey(), entry -> (
+                        (CompactTask) entry.getValue())));
     }
 
     public CassandraContainer createCassandraContainer(CassandraDaemonTask daemonTask) throws PersistenceException {
@@ -414,6 +424,18 @@ public class CassandraState extends SchedulerState implements Managed {
         }
     }
 
+    public CompactTask createCompactTask(
+            CassandraDaemonTask daemon,
+            CompactContext context) throws PersistenceException {
+        Optional<Protos.TaskInfo> template = getTemplate(daemon);
+
+        if (template.isPresent()) {
+            return CompactTask.create(template.get(), daemon, context);
+        } else {
+            throw new PersistenceException("Failed to retrieve ClusterTask Template.");
+        }
+    }
+    
     public CassandraDaemonTask getOrCreateDaemon(String name) throws
             PersistenceException, ConfigStoreException {
         if (getDaemons().containsKey(name)) {
@@ -543,6 +565,19 @@ public class CassandraState extends SchedulerState implements Managed {
         }
     }
 
+    public CompactTask getOrCreateCompact(
+            CassandraDaemonTask daemon,
+            CompactContext context) throws PersistenceException {
+
+        String name = CompactTask.nameForDaemon(daemon);
+        Map<String, CompactTask> compacts = getCompactTasks();
+        if (compacts.containsKey(name)) {
+            return compacts.get(name);
+        } else {
+            return createCompactTask(daemon, context);
+        }
+    }
+    
     public boolean needsConfigUpdate(final CassandraDaemonTask daemon) throws ConfigStoreException {
         return !configuration.hasCurrentConfig(daemon);
     }

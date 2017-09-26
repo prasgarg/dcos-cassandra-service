@@ -15,6 +15,7 @@ import com.mesosphere.dcos.cassandra.common.offer.PersistentOfferRequirementProv
 import com.mesosphere.dcos.cassandra.scheduler.plan.backup.BackupManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.backup.RestoreManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.cleanup.CleanupManager;
+import com.mesosphere.dcos.cassandra.scheduler.plan.compact.CompactManager;
 import com.mesosphere.dcos.cassandra.scheduler.plan.repair.RepairManager;
 import com.mesosphere.dcos.cassandra.scheduler.seeds.SeedsManager;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
@@ -96,6 +97,7 @@ public class TestModule extends AbstractModule {
         bind(RestoreManager.class).asEagerSingleton();
         bind(CleanupManager.class).asEagerSingleton();
         bind(RepairManager.class).asEagerSingleton();
+        bind(CompactManager.class).asEagerSingleton();
         bind(SeedsManager.class).asEagerSingleton();
     }
 }

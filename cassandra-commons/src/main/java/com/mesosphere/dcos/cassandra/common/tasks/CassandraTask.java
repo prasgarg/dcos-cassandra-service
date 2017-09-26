@@ -21,6 +21,7 @@ import com.mesosphere.dcos.cassandra.common.serialization.SerializationException
 import com.mesosphere.dcos.cassandra.common.serialization.Serializer;
 import com.mesosphere.dcos.cassandra.common.tasks.backup.*;
 import com.mesosphere.dcos.cassandra.common.tasks.cleanup.CleanupTask;
+import com.mesosphere.dcos.cassandra.common.tasks.compact.CompactTask;
 import com.mesosphere.dcos.cassandra.common.tasks.repair.RepairTask;
 import com.mesosphere.dcos.cassandra.common.tasks.upgradesstable.UpgradeSSTableTask;
 import org.apache.mesos.Protos;
@@ -123,6 +124,10 @@ public abstract class CassandraTask {
          * Task that restores the schema on a node.
          */
         SCHEMA_RESTORE,
+        /**
+         * Task that compacts the sstables.
+         */
+        COMPACT
     }
 
     /**
@@ -157,6 +162,8 @@ public abstract class CassandraTask {
                 return UpgradeSSTableTask.parse(info);
             case TEMPLATE:
                 return CassandraTemplateTask.parse(info);
+            case COMPACT:
+                return CompactTask.parse(info);
             default:
                 throw new RuntimeException("Failed to parse task from TaskInfo " +
                     "type information is invalid");
