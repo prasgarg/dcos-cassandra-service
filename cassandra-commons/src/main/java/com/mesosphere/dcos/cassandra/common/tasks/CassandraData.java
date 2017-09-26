@@ -6,6 +6,7 @@ import com.mesosphere.dcos.cassandra.common.CassandraProtos;
 import com.mesosphere.dcos.cassandra.common.config.CassandraConfig;
 import com.mesosphere.dcos.cassandra.common.tasks.backup.BackupRestoreContext;
 import com.mesosphere.dcos.cassandra.common.tasks.cleanup.CleanupContext;
+import com.mesosphere.dcos.cassandra.common.tasks.compact.CompactContext;
 import com.mesosphere.dcos.cassandra.common.tasks.repair.RepairContext;
 import com.mesosphere.dcos.cassandra.common.tasks.upgradesstable.UpgradeSSTableContext;
 import org.apache.mesos.Protos;
@@ -60,6 +61,22 @@ public class CassandraData {
 
     public static final CassandraData createRepairStatusData() {
         return new CassandraData(CassandraTask.TYPE.REPAIR);
+    }
+    
+    public static final CassandraData createCompactData(
+            final String hostname,
+            final CompactContext context) {
+
+            return new CassandraData(
+                CassandraTask.TYPE.COMPACT,
+                hostname,
+                context.getNodes(),
+                context.getKeySpaces(),
+                context.getColumnFamilies());
+    }
+    
+    public static final CassandraData createCompactStatusData() {
+        return new CassandraData(CassandraTask.TYPE.COMPACT);
     }
 
     public static final CassandraData createCleanupData(
@@ -438,6 +455,13 @@ public class CassandraData {
                 data.getNodesList(),
                 data.getKeySpacesList(),
                 data.getColumnFamiliesList());
+    }
+    
+    public CompactContext getCompactContext() {
+        return new CompactContext(
+            data.getNodesList(),
+            data.getKeySpacesList(),
+            data.getColumnFamiliesList());
     }
 
     public ByteString getBytes() {
