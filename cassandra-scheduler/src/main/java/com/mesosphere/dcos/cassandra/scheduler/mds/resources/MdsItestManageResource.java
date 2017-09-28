@@ -1,14 +1,14 @@
 package com.mesosphere.dcos.cassandra.scheduler.mds.resources;
 
-import java.net.InetSocketAddress;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -18,17 +18,16 @@ import javax.ws.rs.core.Response;
 
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.dcos.Capabilities;
+import org.apache.mesos.offer.VolumeRequirement.VolumeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.mesosphere.dcos.cassandra.common.config.ConfigurationManager;
 import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
-import com.mesosphere.dcos.cassandra.scheduler.resources.ConnectionResource;
 
 @Path("/v1/itest")
 @Produces(MediaType.APPLICATION_JSON)
@@ -73,6 +72,35 @@ public class MdsItestManageResource {
 
 		return Response.status(Response.Status.OK).entity("Successfull").build();
 	}
+	
+	@GET
+	@Path("/sstables/files")
+	public SSTablesResponse getSSTablesFiles() throws IOException, InterruptedException {
+		SSTablesResponse ssTablesResponse = new SSTablesResponse();
+		VolumeType diskType = configurationManager.getTargetConfig().getCassandraConfig().getDiskType();
+		String dataPath = "";
+		if (VolumeType.MOUNT.equals(diskType)) {
+			dataPath = "/dcos/volume1";
+		} else {
+			dataPath = "/var/lib/mesos/slave/volumes/roles/"
+					+ configurationManager.getTargetConfig().getServiceConfig().getRole();
+		}
+		
+		String command = "find " + dataPath + " -name *.db* |  rev | cut -d/ -f1 | rev";
+		List<String> commands = new ArrayList<String>();
+		commands.add("/bin/sh");
+		commands.add("-c");
+		commands.add(command);
+		Runtime run = Runtime.getRuntime();
+		Process pr = run.exec(commands.toArray(new String[commands.size()]));
+		pr.waitFor();
+		BufferedReader buf = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+		String line = "";
+		while ((line = buf.readLine()) != null) {
+			ssTablesResponse.addSSTablesFileName(line);
+		}
+		return ssTablesResponse;
+	}
 
-
+	
 }
