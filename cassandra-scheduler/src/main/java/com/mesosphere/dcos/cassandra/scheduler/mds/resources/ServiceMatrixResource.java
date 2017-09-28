@@ -65,12 +65,12 @@ public class ServiceMatrixResource {
     
     @GET
     @Path("/tablestats/{keyspace}/{columnFamily}")
-    public Map<String, String> getSSTableCount(@PathParam("keyspace") final String keyspace,@PathParam("columnFamily") final String columnFamily) throws Exception {
+    public Map<String, Integer> getSSTableCount(@PathParam("keyspace") final String keyspace,@PathParam("columnFamily") final String columnFamily) throws Exception {
         LOGGER.info("Fetching Matrix tablestats for the cassandra with localhost , Make sure cassandra service is running on one of cassandra node");
-        Map<String, String> sstableDetails = new HashMap<>();
+        Map<String, Integer> sstableDetails = new HashMap<>();
         NodeProbe probe = new NodeProbe("127.0.0.1");
         LOGGER.info("Node probe connected with JMX");
-        String sstableCount = (String)probe.getColumnFamilyMetric(keyspace, columnFamily, "LiveSSTableCount");
+        Integer sstableCount = (Integer)probe.getColumnFamilyMetric(keyspace, columnFamily, "LiveSSTableCount");
         sstableDetails.put("SSTable count", sstableCount);
         return sstableDetails;
     }
