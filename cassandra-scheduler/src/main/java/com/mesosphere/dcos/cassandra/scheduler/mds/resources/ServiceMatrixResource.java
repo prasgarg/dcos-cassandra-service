@@ -7,6 +7,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
@@ -60,6 +61,18 @@ public class ServiceMatrixResource {
     }
         
         return getMatrixResponse(result);
+    }
+    
+    @GET
+    @Path("/tablestats/{keyspace}/{columnFamily}")
+    public Map<String, String> getSSTableCount(@PathParam("keyspace") final String keyspace,@PathParam("columnFamily") final String columnFamily) throws Exception {
+        LOGGER.info("Fetching Matrix tablestats for the cassandra with localhost , Make sure cassandra service is running on one of cassandra node");
+        Map<String, String> sstableDetails = new HashMap<>();
+        NodeProbe probe = new NodeProbe("127.0.0.1");
+        LOGGER.info("Node probe connected with JMX");
+        String sstableCount = (String)probe.getColumnFamilyMetric(keyspace, columnFamily, "LiveSSTableCount");
+        sstableDetails.put("SSTable count", sstableCount);
+        return sstableDetails;
     }
 
     private MatrixStatusResponse getMatrixResponse(Map<String, MatrixStatus> result) {
