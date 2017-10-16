@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -53,7 +54,9 @@ public class CassandraDaemonProcess extends ProcessTask {
     private final AtomicBoolean open = new AtomicBoolean(true);
     private final AtomicReference<CassandraMode> mode;
     private final Probe probe;
-
+    private static int retryCount = 0;
+    private static final int maxRetries = 10;
+ 
     private static final class ModeReporter implements Runnable {
 
         private final CassandraDaemonTask task;
@@ -80,14 +83,33 @@ public class CassandraDaemonProcess extends ProcessTask {
 
         public void run() {
             if (open.get()) {
-                CassandraMode current = CassandraMode.valueOf(probe.get().getOperationMode());
-                if (!mode.get().equals(current)) {
-                    mode.set(current);
-                    LOGGER.info("Cassandra Daemon mode = {}", current);
-                    CassandraDaemonStatus daemonStatus = task.createStatus(Protos.TaskState.TASK_RUNNING, mode.get(),
-                                    Optional.of("Cassandra Daemon running."));
-                    driver.sendStatusUpdate(daemonStatus.getTaskStatus());
-                    LOGGER.info("Sent status update = {} ", daemonStatus);
+                try {
+                    CassandraMode current = CassandraMode.valueOf(probe.get().getOperationMode());
+                    if (!mode.get().equals(current)) {
+                        mode.set(current);
+                        LOGGER.info("Cassandra Daemon mode = {}", current);
+                        CassandraDaemonStatus daemonStatus =
+                                task.createStatus(Protos.TaskState.TASK_RUNNING,
+                                        mode.get(),
+                                        Optional.of("Cassandra Daemon running."));
+                        driver.sendStatusUpdate(daemonStatus.getTaskStatus());
+                        LOGGER.info("Sent status update = {} ", daemonStatus);
+                        }
+                    retryCount = 0;
+                    }
+                catch (UndeclaredThrowableException ex)
+                {
+                    LOGGER.error("Received an Exception of type: UndeclaredThrowableException:");
+                    if(retryCount++ >= maxRetries) {
+                        ex.getCause().printStackTrace();
+                        mode.set(CassandraMode.UNKNOWN);
+                        CassandraDaemonStatus daemonStatus = task.createStatus(Protos.TaskState.TASK_KILLING,
+                                mode.get(),
+                                Optional.of("Exception occured, can not connect to jmx"));
+                        driver.sendStatusUpdate(daemonStatus.getTaskStatus());
+                        LOGGER.info("Sent status update = {} ", daemonStatus);
+                        retryCount = 0;
+                    }
                 }
             }
         }
