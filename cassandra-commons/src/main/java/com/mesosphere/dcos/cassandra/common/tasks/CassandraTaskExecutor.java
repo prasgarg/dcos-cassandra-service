@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.protobuf.TextFormat;
 import com.mesosphere.dcos.cassandra.common.config.ExecutorConfig;
+import com.mesosphere.dcos.cassandra.common.util.LocalSetupUtils;
 import org.apache.mesos.Protos;
 import org.apache.mesos.executor.ExecutorUtils;
 
@@ -108,6 +109,11 @@ public class CassandraTaskExecutor {
         Set<String> uris,
         boolean cacheFetchedUris,
         String javaHome) {
+        int port = 0;
+        if(LocalSetupUtils.schedulerCheckIfLocalSetUp(apiPort))
+            port = LocalSetupUtils.generateExecutorApiPort();
+        else
+            port = apiPort;
 
         this.info = Protos.ExecutorInfo.newBuilder()
             .setFrameworkId(Protos.FrameworkID.newBuilder()
@@ -121,7 +127,7 @@ public class CassandraTaskExecutor {
                 ImmutableMap.<String, String>builder()
                         .put("JAVA_HOME", javaHome)
                         .put("JAVA_OPTS", "-Xmx" + heapMb + "M")
-                        .put("EXECUTOR_API_PORT", Integer.toString(apiPort))
+                        .put("EXECUTOR_API_PORT", Integer.toString(port))
                         .build()))
             .addAllResources(
                 Arrays.asList(
