@@ -14,6 +14,7 @@ package com.mesosphere.dcos.cassandra.executor;
 
 import com.google.common.collect.ImmutableSet;
 import com.mesosphere.dcos.cassandra.common.tasks.*;
+import com.mesosphere.dcos.cassandra.common.util.LocalSetupUtils;
 import com.mesosphere.dcos.cassandra.executor.metrics.MetricsConfig;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.schema.SchemaKeyspace;
@@ -54,6 +55,7 @@ public class CassandraDaemonProcess extends ProcessTask {
     private final AtomicBoolean open = new AtomicBoolean(true);
     private final AtomicReference<CassandraMode> mode;
     private final Probe probe;
+    private static int jmxPort;
     private static int retryCount = 0;
     private static final int maxRetries = 10;
  
@@ -188,7 +190,10 @@ public class CassandraDaemonProcess extends ProcessTask {
         super(executorDriver, taskInfo, processBuilder, exitOnTermination);
         this.task = cassandraTask;
 
-        this.probe = new Probe(cassandraTask);
+        if(LocalSetupUtils.executorCheckIfLocalSetUp())
+            this.probe = new Probe(cassandraTask, jmxPort);
+        else
+            this.probe = new Probe(cassandraTask, task.getConfig().getJmxPort());
         this.mode = new AtomicReference<>(CassandraMode.STARTING);
         scheduledExecutorService.scheduleAtFixedRate(ModeReporter.create(task, probe, executorDriver, open, mode), 1, 1,
                         TimeUnit.SECONDS);
@@ -242,10 +247,22 @@ public class CassandraDaemonProcess extends ProcessTask {
     private static ProcessBuilder createDaemon(CassandraPaths cassandraPaths, CassandraDaemonTask cassandraDaemonTask,
                     boolean metricsEnabled) throws UnknownHostException {
 
-		final ProcessBuilder builder = new ProcessBuilder(cassandraPaths.cassandraRun().toString(),
-				getReplaceIp(cassandraDaemonTask), ignoreDataCenter(cassandraDaemonTask),
-				ignoreRack(cassandraDaemonTask), "-f").inheritIO().directory(new File(System.getProperty("user.dir")));
-        builder.environment().put("JMX_PORT", Integer.toString(cassandraDaemonTask.getConfig().getJmxPort()));
+        final ProcessBuilder builder;
+        if(LocalSetupUtils.executorCheckIfLocalSetUp()) {
+            jmxPort = LocalSetupUtils.generateJmxPort();
+            LOGGER.info("Setting jmxPort to {}", jmxPort);
+            builder = new ProcessBuilder(cassandraPaths.cassandraRun().toString(),
+                    "-f").inheritIO().directory(new File(System.getProperty("user.dir")));
+            builder.environment().put("JMX_PORT", Integer.toString(jmxPort));
+        }
+        else {
+            jmxPort = cassandraDaemonTask.getConfig().getJmxPort();
+            builder = new ProcessBuilder(cassandraPaths.cassandraRun().toString(),
+                    getReplaceIp(cassandraDaemonTask), ignoreDataCenter(cassandraDaemonTask),
+                    ignoreRack(cassandraDaemonTask), "-f").inheritIO().directory(new File(System.getProperty("user.dir")));
+            builder.environment().put("JMX_PORT", Integer.toString(cassandraDaemonTask.getConfig().getJmxPort()));
+        }
+
         if (metricsEnabled) {
             MetricsConfig.setEnv(builder.environment());
         }
