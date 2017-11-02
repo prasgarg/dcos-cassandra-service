@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableSet;
 import com.mesosphere.dcos.cassandra.common.tasks.*;
 import com.mesosphere.dcos.cassandra.common.util.LocalSetupUtils;
 import com.mesosphere.dcos.cassandra.executor.metrics.MetricsConfig;
+
+import org.apache.cassandra.config.SchemaConstants;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.schema.SchemaKeyspace;
 import org.apache.cassandra.tools.NodeProbe;
@@ -48,7 +50,7 @@ import java.util.stream.Collectors;
  * All administration and monitoring is achieved by attaching to the Cassandra daemon via JMX using the NodeProbe class.
  */
 public class CassandraDaemonProcess extends ProcessTask {
-    public static final Set<String> SYSTEM_KEYSPACE_NAMES = ImmutableSet.of(SystemKeyspace.NAME, SchemaKeyspace.NAME);
+    public static final Set<String> SYSTEM_KEYSPACE_NAMES = ImmutableSet.of(SchemaConstants.SYSTEM_KEYSPACE_NAME, SchemaConstants.SCHEMA_KEYSPACE_NAME);
     private static final Logger LOGGER = LoggerFactory.getLogger(CassandraDaemonProcess.class);
 
     private final CassandraDaemonTask task;
@@ -399,7 +401,8 @@ public class CassandraDaemonProcess extends ProcessTask {
      * @throws IOException If an error occurs taking the snapshot.
      */
     public void takeSnapShot(String name, String keySpace) throws IOException {
-        getProbe().takeSnapshot(name, null, keySpace);
+    	Map<String, String> options = new HashMap<String, String>();
+        getProbe().takeSnapshot(name, null, options, keySpace);
     }
 
     /**
