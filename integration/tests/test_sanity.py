@@ -80,9 +80,9 @@ def test_env_unchanged():
     assert completed_plan['status'] == infinity_commons.PlanState.COMPLETE.value
 
     mc = dcos.marathon.create_client()
-    app = mc.get_app('/cassandra')
+    app = mc.get_app('/mds-cassandra')
     app = infinity_commons.strip_meta(app)
-    mc.update_app(app_id='/cassandra', payload=app)
+    mc.update_app(app_id='/mds-cassandra', payload=app)
     completed_plan = infinity_commons.get_and_verify_plan(
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value
     )
@@ -95,14 +95,14 @@ def test_nodes_increase_by_one():
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value
     )
     mc = dcos.marathon.create_client()
-    app = mc.get_app('/cassandra')
+    app = mc.get_app('/mds-cassandra')
     app = infinity_commons.strip_meta(app)
     oe = app['env']
     env_node_count = int(oe['NODES']) + 1
     oe['NODES'] = str(env_node_count)
     app['env'] = oe
     print("Updated node count: {}".format(app['env']['NODES']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: (
@@ -127,14 +127,14 @@ def test_nodes_decrease_by_one_should_fail():
     completed_plan = infinity_commons.get_and_verify_plan(
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value)
     mc = dcos.marathon.create_client()
-    app = mc.get_app('/cassandra')
+    app = mc.get_app('/mds-cassandra')
     app = infinity_commons.strip_meta(app)
     oe = app['env']
     env_node_count = int(oe['NODES']) - 1
     oe['NODES'] = str(env_node_count)
     app['env'] = oe
     print("Updated node count: {}".format(app['env']['NODES']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: (p['status'] == infinity_commons.PlanState.ERROR.value and
@@ -148,7 +148,7 @@ def test_nodes_decrease_by_one_should_fail():
     oe['NODES'] = str(env_node_count)
     app['env'] = oe
     print("Reverted node count: {}".format(app['env']['NODES']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: (p['status'] == infinity_commons.PlanState.COMPLETE.value) and
@@ -163,14 +163,14 @@ def test_change_disk_should_fail():
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value
     )
     mc = dcos.marathon.create_client()
-    app = mc.get_app('/cassandra')
+    app = mc.get_app('/mds-cassandra')
     app = infinity_commons.strip_meta(app)
     oe = app['env']
     disk = int(oe['CASSANDRA_DISK_MB']) - 1
     oe['CASSANDRA_DISK_MB'] = str(disk)
     app['env'] = oe
     print("Updated CASSANDRA_DISK_MB: {}".format(app['env']['CASSANDRA_DISK_MB']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: p['status'] == infinity_commons.PlanState.ERROR.value
@@ -184,7 +184,7 @@ def test_change_disk_should_fail():
     oe['CASSANDRA_DISK_MB'] = str(disk)
     app['env'] = oe
     print("Reverted CASSANDRA_DISK_MB: {}".format(app['env']['CASSANDRA_DISK_MB']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value
@@ -199,14 +199,14 @@ def test_cpus_increase_slightly():
         lambda p: p['status'] == infinity_commons.PlanState.COMPLETE.value
     )
     mc = dcos.marathon.create_client()
-    app = mc.get_app('/cassandra')
+    app = mc.get_app('/mds-cassandra')
     app = infinity_commons.strip_meta(app)
     oe = app['env']
     cpu = float(oe['CASSANDRA_CPUS']) + 0.1
     oe['CASSANDRA_CPUS'] = str(cpu)
     app['env'] = oe
     print("Updated CASSANDRA_CPUS: {}".format(app['env']['CASSANDRA_CPUS']))
-    print(mc.update_app(app_id='/cassandra', payload=app, force=True))
+    print(mc.update_app(app_id='/mds-cassandra', payload=app, force=True))
     check_health()
     plan = infinity_commons.get_and_verify_plan(
         lambda p: (

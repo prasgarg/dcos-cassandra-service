@@ -7,7 +7,7 @@ ext {
     awsVer = '1.11.49'
 }
 
-def cassVer = System.properties['cassVer'] ?: "3.0.8"
+def cassVer = System.properties['cassVer'] ?: "3.10"
 
 dependencies {
     compile project(':cassandra-commons')
