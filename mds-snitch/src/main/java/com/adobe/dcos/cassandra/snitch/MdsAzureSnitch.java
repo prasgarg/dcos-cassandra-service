@@ -14,6 +14,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.gms.ApplicationState;
@@ -21,7 +22,9 @@ import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.AbstractNetworkTopologySnitch;
+import org.apache.cassandra.locator.ReconnectableSnitchHelper;
 import org.apache.cassandra.locator.SnitchProperties;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,12 +39,19 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
     protected static final String FAULTDOMAIN_NAME_QUERY_URL =
                     "http://169.254.169.254/metadata/instance/compute/platformFaultDomain?api-version=2017-04-02&format=text";
 
+	private static final String PUBLIC_IP_QUERY_URL = 
+			"http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-04-02&format=text";
+	private static final String PRIVATE_IP_QUERY_URL = 
+			"http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2017-04-02&format=text";
+    
+    
     private static final String DEFAULT_DC = "UNKNOWN-DC";
     private static final String DEFAULT_RACK = "UNKNOWN-RACK";
     private Map<InetAddress, Map<String, String>> savedEndpoints;
     protected String faultDomain;
     protected String azureRegion;
     private final String CLOUD_PROVIDER_PREFIX = "AZURE-";
+    private final String localPrivateAddress;
     
     public MdsAzureSnitch() throws IOException, ConfigurationException {
         String apiResult;
@@ -54,6 +64,17 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
         final String datacenterSuffix = (new SnitchProperties()).get("dc_suffix", "");
         azureRegion = azureRegion.concat(datacenterSuffix);
         LOGGER.info("MdsAzureSnitch using region: {}, zone: {}.", azureRegion, faultDomain);
+        
+        InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(PUBLIC_IP_QUERY_URL));
+		LOGGER.info("MdsAzureSnitch using publicIP as identifier: {}", localPublicAddress);
+        localPrivateAddress = azureApiCall(PRIVATE_IP_QUERY_URL);
+        // use the Public IP to broadcast Address to other nodes.
+        DatabaseDescriptor.setBroadcastAddress(localPublicAddress);
+        if (DatabaseDescriptor.getBroadcastRpcAddress() == null)
+        {
+            LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", localPublicAddress);
+            DatabaseDescriptor.setBroadcastRpcAddress(localPublicAddress);
+        }
     }
 
     String azureApiCall(final String url) throws IOException, ConfigurationException {
@@ -104,6 +125,14 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
             return DEFAULT_DC;
         }
         return state.getApplicationState(ApplicationState.DC).value;
+    }
+    
+    @Override
+    public void gossiperStarting()
+    {
+        super.gossiperStarting();
+        Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP, StorageService.instance.valueFactory.internalIP(localPrivateAddress));
+        Gossiper.instance.register(new ReconnectableSnitchHelper(this, azureRegion, true));
     }
 }
 

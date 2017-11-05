@@ -10,6 +10,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.gms.ApplicationState;
@@ -17,7 +18,9 @@ import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.AbstractNetworkTopologySnitch;
+import org.apache.cassandra.locator.ReconnectableSnitchHelper;
 import org.apache.cassandra.locator.SnitchProperties;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +34,16 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MdsAwsSnitch.class);
 
 	protected static final String ZONE_NAME_QUERY_URL = "http://169.254.169.254/latest/meta-data/placement/availability-zone";
+	private static final String PUBLIC_IP_QUERY_URL = "http://169.254.169.254/latest/meta-data/public-ipv4";
+    private static final String PRIVATE_IP_QUERY_URL = "http://169.254.169.254/latest/meta-data/local-ipv4";
+    
 	private static final String DEFAULT_DC = "UNKNOWN-DC";
 	private static final String DEFAULT_RACK = "UNKNOWN-RACK";
 	private Map<InetAddress, Map<String, String>> savedEndpoints;
 	protected String ec2zone;
 	protected String ec2region;
 	private final String CLOUD_PROVIDER_PREFIX = "AWS-"; 
+	private final String localPrivateAddress;
 	
 	public MdsAwsSnitch() throws IOException, ConfigurationException {
 		String az = awsApiCall(ZONE_NAME_QUERY_URL);
@@ -46,6 +53,17 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 		String datacenterSuffix = (new SnitchProperties()).get("dc_suffix", "");
 		ec2region = ec2region.concat(datacenterSuffix);
 		LOGGER.info("EC2Snitch using region: {}, zone: {}.", ec2region, ec2zone);
+		
+		InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(PUBLIC_IP_QUERY_URL));
+		LOGGER.info("MdsAwsSnitch using publicIP as identifier: {}", localPublicAddress);
+        localPrivateAddress = awsApiCall(PRIVATE_IP_QUERY_URL);
+        // use the Public IP to broadcast Address to other nodes.
+        DatabaseDescriptor.setBroadcastAddress(localPublicAddress);
+        if (DatabaseDescriptor.getBroadcastRpcAddress() == null)
+        {
+            LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", localPublicAddress);
+            DatabaseDescriptor.setBroadcastRpcAddress(localPublicAddress);
+        }
 	}
 
 	String awsApiCall(String url) throws IOException, ConfigurationException {
@@ -96,4 +114,12 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 		}
 		return state.getApplicationState(ApplicationState.DC).value;
 	}
+	
+	@Override
+    public void gossiperStarting()
+    {
+        super.gossiperStarting();
+        Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP, StorageService.instance.valueFactory.internalIP(localPrivateAddress));
+        Gossiper.instance.register(new ReconnectableSnitchHelper(this, ec2region, true));
+    }
 }

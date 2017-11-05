@@ -71,6 +71,9 @@ public class CassandraSchedulerConfiguration implements Configuration {
   @JsonIgnore
   private final int seeds;
   @JsonIgnore
+	/**
+	 * FORMAT = <node-name>:<zone>:<private-ip>:<public-ip>
+	 */
   private final String zones;
   @JsonIgnore
   private final String placementConstraint;
@@ -95,6 +98,9 @@ public class CassandraSchedulerConfiguration implements Configuration {
   @JsonIgnore
   private final HttpClientConfiguration httpClientConfiguration;
 
+	@JsonIgnore
+	private Map<String, String> privateToPublicIpMap;
+	
   private CassandraSchedulerConfiguration(
     ExecutorConfig executorConfig,
     int servers,
@@ -125,6 +131,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
     this.phaseStrategy = phaseStrategy;
     this.enableUpgradeSSTableEndpoint = enableUpgradeSSTableEndpoint;
     this.httpClientConfiguration = httpClientConfiguration;
+		this.privateToPublicIpMap = privateToPublicIpMap(zones);
   }
 
   @JsonProperty("executor")
@@ -266,4 +273,23 @@ public class CassandraSchedulerConfiguration implements Configuration {
   public String toJsonString() throws ConfigStoreException {
     return JsonUtils.toJsonString(this);
   }
+  
+	@JsonIgnore
+	private Map<String, String> privateToPublicIpMap(String zones) {
+		if (zones != null) {
+			Map<String, String> map = new HashMap<>();
+			String[] instancesInfo = zones.split(",");
+			for (String instanceInfo : instancesInfo) {
+				String[] info = instanceInfo.split(":");
+				map.put(info[2], info[3]);
+			}
+			return map;
+		}
+		return null;
+	}
+	
+	@JsonIgnore
+	public String getPublicIp(String privateIp) {
+		return privateToPublicIpMap != null ? privateToPublicIpMap.get(privateIp) : null;
+	}
 }
