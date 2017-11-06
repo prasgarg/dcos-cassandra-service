@@ -1,10 +1,8 @@
 package com.mesosphere.dcos.cassandra;
 
 import com.google.common.base.Charsets;
-
-import org.apache.cassandra.exceptions.ConfigurationException;
-import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.SeedProvider;
+import org.apache.cassandra.locator.SnitchProperties;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.slf4j.Logger;
@@ -18,7 +16,6 @@ import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +48,11 @@ public class DcosSeedProvider implements SeedProvider {
             return InetAddress.getByName(libProcessAddress);
         }
     }
-
+    
+	private InetAddress getPublicIp() throws UnknownHostException {
+		String publicIp = (new SnitchProperties()).get("public_ip", "");
+		return (publicIp != null ? InetAddress.getByName(publicIp) : null);
+	}
 
     public List<InetAddress> getRemoteSeeds() throws IOException {
 
@@ -87,7 +88,8 @@ public class DcosSeedProvider implements SeedProvider {
 
         if (isSeed) {
             addresses = new ArrayList<>(seedStrings.size() + 1);
-            addresses.add(getMyPublicIp());
+			InetAddress publicIp = getPublicIp();
+			addresses.add(publicIp != null ? publicIp : getLocalAddress());
         } else {
 
             addresses = new ArrayList<>(seedStrings.size());
@@ -118,30 +120,4 @@ public class DcosSeedProvider implements SeedProvider {
         }
 
     }
-    
-    private InetAddress getMyPublicIp() throws ConfigurationException, IOException{
-		return InetAddress.getByName(awsApiCall(PUBLIC_IP_QUERY_URL));
-		
-    }
-    private static final String PUBLIC_IP_QUERY_URL = "http://169.254.169.254/latest/meta-data/public-ipv4";
-    String awsApiCall(String url) throws IOException, ConfigurationException {
-		// Populate the region and zone by introspection, fail if 404 on
-		// metadata
-		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-		DataInputStream d = null;
-		try {
-			conn.setRequestMethod("GET");
-			if (conn.getResponseCode() != 200)
-				throw new ConfigurationException("Ec2Snitch was unable to execute the API call. Not an ec2 node?");
-
-			int cl = conn.getContentLength();
-			byte[] b = new byte[cl];
-			d = new DataInputStream((FilterInputStream) conn.getContent());
-			d.readFully(b);
-			return new String(b, StandardCharsets.UTF_8);
-		} finally {
-			FileUtils.close(d);
-			conn.disconnect();
-		}
-	}
 }

@@ -128,12 +128,15 @@ public class Location {
      * @param path The Path indicating where the Location will be written.
      * @throws IOException If the Location can not be written to path.
      */
-    public void writeProperties(Path path) throws IOException {
+    public void writeProperties(Path path, String publicIp) throws IOException {
         logger.info("Writing properties to path: " + path.toAbsolutePath());
         PrintWriter writer = new PrintWriter(path.toString(), "UTF-8");
         writer.println("dc=" + dataCenter);
         writer.println("rack=" + rack);
         writer.println("dc_suffix=" + dcSuffix);
+        if(publicIp!=null){
+			writer.println("public_ip=" + publicIp);
+        }
         writer.close();
     }
 
