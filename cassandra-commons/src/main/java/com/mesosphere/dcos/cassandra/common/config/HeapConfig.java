@@ -36,7 +36,8 @@ public class HeapConfig {
 
   public enum GC_TYPE {
     G1,
-    CMS
+    CMS,
+    ZING
   }
 
   public static final String DEFAULT_FILE_NAME = "jvm.options";
@@ -60,6 +61,12 @@ public class HeapConfig {
       "-XX:+UseG1GC",
       "-XX:G1RSetUpdatingPauseTimePercent=5",
       "-XX:MaxGCPauseMillis=500");
+
+  private static final List<String> ZING_SETTINGS =
+    Arrays.asList(
+      "-XX:+UseG1GC",
+      "-XX:GenPauselessNewThreads=4",
+      "-XX:GenPauselessOldThreads=2");
 
   /**
    * The default heap configuration for a Cassandra node.
@@ -206,8 +213,10 @@ public class HeapConfig {
     if (gcType.equals(GC_TYPE.CMS)) {
       config.add(getXmn());
       config.addAll(CMS_SETTINGS);
-    } else {
+    } else if(gcType.equals(GC_TYPE.G1)){
       config.addAll(G1_SETTINGS);
+    } else {
+      config.addAll(ZING_SETTINGS);
     }
     return config;
   }

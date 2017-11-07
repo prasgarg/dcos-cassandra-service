@@ -22,7 +22,7 @@
   {
     "gracePeriodSeconds": 120,
     "intervalSeconds": 30,
-    "maxConsecutiveFailures": 0,
+    "maxConsecutiveFailures": 3,
     "path": "/admin/healthcheck",
     "portIndex": 0,
     "protocol": "HTTP",
@@ -88,7 +88,7 @@
 ,"CASSANDRA_DISK_TYPE":"{{nodes.disk_type}}"
 ,"CASSANDRA_HEAP_SIZE_MB":"{{nodes.heap.size}}"
 ,"CASSANDRA_HEAP_NEW_MB":"{{nodes.heap.new}}"
-,"CASSANDRA_HEAP_GC":"{{nodes.heap.gc}}"
+,"CASSANDRA_GC_TYPE":"{{nodes.heap.gc}}"
 ,"CASSANDRA_JMX_PORT":"{{cassandra.jmx_port}}"
 ,"ENABLE_CHECK_DATA_CENTER":"{{cassandra.enable_check_data_center}}"
 ,"ENABLE_CHECK_RACK":"{{cassandra.enable_check_rack}}"
@@ -155,6 +155,9 @@
 ,"CASSANDRA_HINTS_FLUSH_PERIOD_IN_MS":"{{cassandra.hints_flush_period_in_ms}}"
 ,"CASSANDRA_MATERIALIZED_VIEW_WRITES":"{{cassandra.concurrent_materialized_view_writes}}"
 ,"CASSANDRA_COMMITLOG_TOTAL_SPACE_IN_MB":"{{cassandra.commitlog_total_space_in_mb}}"
+,"CASSANDRA_CONCURRENT_COMPACTORS":"{{cassandra.concurrent_compactors}}"
+,"CASSANDRA_MEMTABLE_HEAP_SPACE_IN_MB":"{{cassandra.memtable_heap_space_in_mb}}"
+,"CASSANDRA_MEMTABLE_FLUSH_WRITERS":"{{cassandra.memtable_flush_writers}}"
 ,"EXECUTOR_CPUS":"{{executor.cpus}}"
 ,"EXECUTOR_MEMORY_MB":"{{executor.mem}}"
 ,"EXECUTOR_DISK_MB":"{{executor.disk}}"

@@ -160,7 +160,7 @@
 						"gc" : {
 							"id": "http://cassandra/docs/mesosphere.com/node/heap/gc",
 							"type": "string",
-							"enum": [ "G1", "CMS" ],
+							"enum": [ "G1", "CMS", "ZING" ],
 							"description": "The Garbage collector for JVM (Either G1 or CMS).",
 							"default": "CMS"
 						}
@@ -519,6 +519,24 @@
 					"type": "integer",
 					"description": "The maximum number of concurrent writes to materialized views.",
 					"default": 32
+				},
+				"concurrent_compactors": {
+					"id": "http://cassandra/docs/mesosphere.com/cassandra/concurrent_compactors",
+					"type": "integer",
+					"description": "The maximum number fo concurrent compactors",
+					"default": 2
+				},
+				"memtable_heap_space_in_mb": {
+					"id": "http://cassandra/docs/mesosphere.com/cassandra/memtable_heap_space_in_mb",
+					"type": "integer",
+					"description": "The maximum value of memtable heap space in mb",
+					"default": 2048
+				},
+				"memtable_flush_writers": {
+					"id": "http://cassandra/docs/mesosphere.com/cassandra/memtable_flush_writers",
+					"type": "integer",
+					"description": "The number of memtable flush writers",
+					"default": 8
 				},
 				"commitlog_total_space_in_mb": {
 					"id": "http://cassandra/docs/mesosphere.com/cassandra/commitlog_total_space_in_mb",
