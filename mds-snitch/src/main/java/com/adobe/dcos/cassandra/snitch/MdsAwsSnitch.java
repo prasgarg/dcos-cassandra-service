@@ -44,8 +44,9 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 	protected String ec2region;
 	private final String CLOUD_PROVIDER_PREFIX = "AWS-"; 
 	private final String localPrivateAddress;
+	private InetAddress publicAddress;
 	
-	public MdsAwsSnitch() throws IOException, ConfigurationException {
+	public MdsAwsSnitch() throws IOException {
 		String az = awsApiCall(ZONE_NAME_QUERY_URL);
 		// Split "us-east-1a"  into "us-east-1" , "a" .
 		ec2zone = "" + az.charAt(az.length() - 1);
@@ -54,16 +55,25 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 		ec2region = ec2region.concat(datacenterSuffix);
 		LOGGER.info("EC2Snitch using region: {}, zone: {}.", ec2region, ec2zone);
 		
-		InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(PUBLIC_IP_QUERY_URL));
-		LOGGER.info("MdsAwsSnitch using publicIP as identifier: {}", localPublicAddress);
+		try {
+			InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(PUBLIC_IP_QUERY_URL));
+			publicAddress = localPublicAddress; 
+		} catch (ConfigurationException configurationException) {
+			publicAddress = null;
+		}
+		LOGGER.info("MdsAwsSnitch using publicIP as identifier: {}", publicAddress);
+		 
+		
         localPrivateAddress = awsApiCall(PRIVATE_IP_QUERY_URL);
         // use the Public IP to broadcast Address to other nodes.
-        DatabaseDescriptor.setBroadcastAddress(localPublicAddress);
-        if (DatabaseDescriptor.getBroadcastRpcAddress() == null)
-        {
-            LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", localPublicAddress);
-            DatabaseDescriptor.setBroadcastRpcAddress(localPublicAddress);
-        }
+        
+		if (publicAddress != null) {
+			DatabaseDescriptor.setBroadcastAddress(publicAddress);
+			if (DatabaseDescriptor.getBroadcastRpcAddress() == null) {
+				LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", publicAddress);
+				DatabaseDescriptor.setBroadcastRpcAddress(publicAddress);
+			}
+		}
 	}
 
 	String awsApiCall(String url) throws IOException, ConfigurationException {
@@ -116,10 +126,13 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 	}
 	
 	@Override
-    public void gossiperStarting()
-    {
-        super.gossiperStarting();
-        Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP, StorageService.instance.valueFactory.internalIP(localPrivateAddress));
-        Gossiper.instance.register(new ReconnectableSnitchHelper(this, ec2region, true));
-    }
+	public void gossiperStarting() {
+		super.gossiperStarting();
+
+		if (publicAddress != null) {
+			Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP,
+					StorageService.instance.valueFactory.internalIP(localPrivateAddress));
+			Gossiper.instance.register(new ReconnectableSnitchHelper(this, ec2region, true));
+		}
+	}
 }

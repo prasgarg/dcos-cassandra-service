@@ -281,7 +281,9 @@ public class CassandraSchedulerConfiguration implements Configuration {
 			String[] instancesInfo = zones.split(",");
 			for (String instanceInfo : instancesInfo) {
 				String[] info = instanceInfo.split(":");
-				map.put(info[2], info[3]);
+				if (info.length > 3) {
+					map.put(info[2], info[3]);
+				}
 			}
 			return map;
 		}

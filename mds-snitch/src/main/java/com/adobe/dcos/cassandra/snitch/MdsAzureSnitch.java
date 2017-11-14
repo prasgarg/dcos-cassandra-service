@@ -52,6 +52,7 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
     protected String azureRegion;
     private final String CLOUD_PROVIDER_PREFIX = "AZURE-";
     private final String localPrivateAddress;
+    private InetAddress publicAddress;
     
     public MdsAzureSnitch() throws IOException, ConfigurationException {
         String apiResult;
@@ -65,16 +66,23 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
         azureRegion = azureRegion.concat(datacenterSuffix);
         LOGGER.info("MdsAzureSnitch using region: {}, zone: {}.", azureRegion, faultDomain);
         
-        InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(PUBLIC_IP_QUERY_URL));
-		LOGGER.info("MdsAzureSnitch using publicIP as identifier: {}", localPublicAddress);
+		try {
+			InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(PUBLIC_IP_QUERY_URL));
+			publicAddress = localPublicAddress;
+		} catch (ConfigurationException configurationException) {
+			publicAddress = null;
+		}
+		LOGGER.info("MdsAzureSnitch using publicIP as identifier: {}", publicAddress);
         localPrivateAddress = azureApiCall(PRIVATE_IP_QUERY_URL);
         // use the Public IP to broadcast Address to other nodes.
-        DatabaseDescriptor.setBroadcastAddress(localPublicAddress);
-        if (DatabaseDescriptor.getBroadcastRpcAddress() == null)
-        {
-            LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", localPublicAddress);
-            DatabaseDescriptor.setBroadcastRpcAddress(localPublicAddress);
-        }
+        
+		if (publicAddress != null) {
+			DatabaseDescriptor.setBroadcastAddress(publicAddress);
+			if (DatabaseDescriptor.getBroadcastRpcAddress() == null) {
+				LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", publicAddress);
+				DatabaseDescriptor.setBroadcastRpcAddress(publicAddress);
+			}
+		}
     }
 
     String azureApiCall(final String url) throws IOException, ConfigurationException {
@@ -127,13 +135,15 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
         return state.getApplicationState(ApplicationState.DC).value;
     }
     
-    @Override
-    public void gossiperStarting()
-    {
-        super.gossiperStarting();
-        Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP, StorageService.instance.valueFactory.internalIP(localPrivateAddress));
-        Gossiper.instance.register(new ReconnectableSnitchHelper(this, azureRegion, true));
-    }
+	@Override
+	public void gossiperStarting() {
+		super.gossiperStarting();
+		if (publicAddress != null) {
+			Gossiper.instance.addLocalApplicationState(ApplicationState.INTERNAL_IP,
+					StorageService.instance.valueFactory.internalIP(localPrivateAddress));
+			Gossiper.instance.register(new ReconnectableSnitchHelper(this, azureRegion, true));
+		}
+	}
 }
 
 

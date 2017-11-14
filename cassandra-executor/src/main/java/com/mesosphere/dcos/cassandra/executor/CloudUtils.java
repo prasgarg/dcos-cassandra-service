@@ -16,14 +16,22 @@ public class CloudUtils {
 	private static final String AWS_PUBLIC_IP_QUERY_URL = "http://169.254.169.254/latest/meta-data/public-ipv4";
 	private static final String AZURE_PUBLIC_IP_QUERY_URL = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-04-02&format=text";
 
-	public static String getPublicAwsPublicIp() throws ConfigurationException, UnknownHostException, IOException {
-		InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(AWS_PUBLIC_IP_QUERY_URL));
-		return localPublicAddress.getHostAddress();
+	public static String getPublicAwsPublicIp() throws UnknownHostException, IOException {
+		try {
+			InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(AWS_PUBLIC_IP_QUERY_URL));
+			return localPublicAddress.getHostAddress();
+		} catch (ConfigurationException configurationException) {
+			return null;
+		}
 	}
 
-	public static String getPublicAzurePublicIp() throws ConfigurationException, UnknownHostException, IOException {
-		InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(AZURE_PUBLIC_IP_QUERY_URL));
-		return localPublicAddress.getHostAddress();
+	public static String getPublicAzurePublicIp() throws UnknownHostException, IOException {
+		try {
+			InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(AZURE_PUBLIC_IP_QUERY_URL));
+			return localPublicAddress.getHostAddress();
+		} catch (ConfigurationException configurationException) {
+			return null;
+		}
 	}
 
 	public static String awsApiCall(String url) throws IOException, ConfigurationException {
