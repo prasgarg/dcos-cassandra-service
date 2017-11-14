@@ -189,7 +189,7 @@ public class CassandraDaemonProcess extends ProcessTask {
     }
     
 	private static final String getPublicIp(CassandraApplicationConfig application)
-			throws ConfigurationException, UnknownHostException, IOException {
+			throws UnknownHostException, IOException {
 		if (application.getEndpointSnitch().toLowerCase().contains("aws")) {
 			return CloudUtils.getPublicAwsPublicIp();
 		} else if (application.getEndpointSnitch().toLowerCase().contains("azure")) {
@@ -229,15 +229,20 @@ public class CassandraDaemonProcess extends ProcessTask {
         super.stop(future);
     }
 
-    private static String getReplaceIp(CassandraDaemonTask cassandraDaemonTask) throws UnknownHostException {
-        if (cassandraDaemonTask.getConfig().getReplaceIp().trim().isEmpty()) {
-            return "";
-        } else {
-            InetAddress address = InetAddress.getByName(cassandraDaemonTask.getConfig().getReplaceIp());
-            LOGGER.info("Replacing node: address = {}", address);
-            return "-Dcassandra.replace_address=" + address.getHostAddress();
-        }
-    }
+	private static String getReplaceIp(CassandraDaemonTask cassandraDaemonTask) throws IOException {
+		if (cassandraDaemonTask.getConfig().getReplaceIp().trim().isEmpty()) {
+			return "";
+		} else {
+
+			String ipAddress = getPublicIp(cassandraDaemonTask.getConfig().getApplication());
+			if (ipAddress == null) {
+				ipAddress = cassandraDaemonTask.getConfig().getReplaceIp();
+			}
+			InetAddress address = InetAddress.getByName(ipAddress);
+			LOGGER.info("Replacing node: address = {}", address);
+			return "-Dcassandra.replace_address=" + address.getHostAddress();
+		}
+	}
 
 	private static String ignoreDataCenter(CassandraDaemonTask cassandraDaemonTask) {
 		if (!cassandraDaemonTask.getConfig().isEnableCheckDataCenter()) {
@@ -258,7 +263,7 @@ public class CassandraDaemonProcess extends ProcessTask {
 	}
 	
     private static ProcessBuilder createDaemon(CassandraPaths cassandraPaths, CassandraDaemonTask cassandraDaemonTask,
-                    boolean metricsEnabled) throws UnknownHostException {
+                    boolean metricsEnabled) throws IOException {
 
         final ProcessBuilder builder;
         if(LocalSetupUtils.executorCheckIfLocalSetUp()) {
