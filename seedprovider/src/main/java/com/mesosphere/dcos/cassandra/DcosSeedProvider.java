@@ -50,8 +50,8 @@ public class DcosSeedProvider implements SeedProvider {
     }
     
 	private InetAddress getPublicIp() throws UnknownHostException {
-		String publicIp = (new SnitchProperties()).get("public_ip", "");
-		return (publicIp != null ? InetAddress.getByName(publicIp) : null);
+		String publicIp = (new SnitchProperties()).get("public_ip", null);
+		return (publicIp != null || "".equals(publicIp) ? InetAddress.getByName(publicIp) : null);
 	}
 
     public List<InetAddress> getRemoteSeeds() throws IOException {
