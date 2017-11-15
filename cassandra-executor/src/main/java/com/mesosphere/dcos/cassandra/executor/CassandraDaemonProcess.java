@@ -13,12 +13,14 @@
 package com.mesosphere.dcos.cassandra.executor;
 
 import com.google.common.collect.ImmutableSet;
+import com.mesosphere.dcos.cassandra.common.config.CassandraApplicationConfig;
 import com.mesosphere.dcos.cassandra.common.tasks.*;
 import com.mesosphere.dcos.cassandra.common.util.LocalSetupUtils;
 import com.mesosphere.dcos.cassandra.executor.metrics.MetricsConfig;
 
 import org.apache.cassandra.config.SchemaConstants;
 import org.apache.cassandra.db.SystemKeyspace;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.schema.SchemaKeyspace;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.mesos.ExecutorDriver;
@@ -157,12 +159,12 @@ public class CassandraDaemonProcess extends ProcessTask {
         try {
             CassandraDaemonTask cassandraTask = (CassandraDaemonTask) CassandraTask.parse(taskInfo);
             CassandraPaths cassandraPaths = CassandraPaths.create(cassandraTask.getConfig().getVersion());
+			String publicIp = getPublicIp(cassandraTask.getConfig().getApplication());
+			cassandraTask.getConfig().getLocation().writeProperties(cassandraPaths.cassandraLocation(), publicIp);
 
-            cassandraTask.getConfig().getLocation().writeProperties(cassandraPaths.cassandraLocation());
-
-            cassandraTask.getConfig().getApplication().toBuilder().setListenAddress(getListenAddress())
-                            .setRpcAddress(getListenAddress()).build()
-                            .writeDaemonConfiguration(cassandraPaths.cassandraConfig());
+			cassandraTask.getConfig().getApplication().toBuilder().setListenAddress(getListenAddress())
+					.setRpcAddress(getListenAddress()).build()
+					.writeDaemonConfiguration(cassandraPaths.cassandraConfig());
 
             cassandraTask.getConfig().getHeap().writeHeapSettings(cassandraPaths.heapConfig());
 
@@ -185,7 +187,16 @@ public class CassandraDaemonProcess extends ProcessTask {
             throw ex;
         }
     }
-
+    
+	private static final String getPublicIp(CassandraApplicationConfig application)
+			throws UnknownHostException, IOException {
+		if (application.getEndpointSnitch().toLowerCase().contains("aws")) {
+			return CloudUtils.getPublicAwsPublicIp();
+		} else if (application.getEndpointSnitch().toLowerCase().contains("azure")) {
+			return CloudUtils.getPublicAzurePublicIp();
+		}
+		return null;
+	}
     private CassandraDaemonProcess(ScheduledExecutorService scheduledExecutorService, CassandraDaemonTask cassandraTask,
                     ExecutorDriver executorDriver, Protos.TaskInfo taskInfo, ProcessBuilder processBuilder,
                     boolean exitOnTermination) throws IOException {
@@ -218,15 +229,20 @@ public class CassandraDaemonProcess extends ProcessTask {
         super.stop(future);
     }
 
-    private static String getReplaceIp(CassandraDaemonTask cassandraDaemonTask) throws UnknownHostException {
-        if (cassandraDaemonTask.getConfig().getReplaceIp().trim().isEmpty()) {
-            return "";
-        } else {
-            InetAddress address = InetAddress.getByName(cassandraDaemonTask.getConfig().getReplaceIp());
-            LOGGER.info("Replacing node: address = {}", address);
-            return "-Dcassandra.replace_address=" + address.getHostAddress();
-        }
-    }
+	private static String getReplaceIp(CassandraDaemonTask cassandraDaemonTask) throws IOException {
+		if (cassandraDaemonTask.getConfig().getReplaceIp().trim().isEmpty()) {
+			return "";
+		} else {
+
+			String ipAddress = getPublicIp(cassandraDaemonTask.getConfig().getApplication());
+			if (ipAddress == null) {
+				ipAddress = cassandraDaemonTask.getConfig().getReplaceIp();
+			}
+			InetAddress address = InetAddress.getByName(ipAddress);
+			LOGGER.info("Replacing node: address = {}", address);
+			return "-Dcassandra.replace_address=" + address.getHostAddress();
+		}
+	}
 
 	private static String ignoreDataCenter(CassandraDaemonTask cassandraDaemonTask) {
 		if (!cassandraDaemonTask.getConfig().isEnableCheckDataCenter()) {
@@ -247,7 +263,7 @@ public class CassandraDaemonProcess extends ProcessTask {
 	}
 	
     private static ProcessBuilder createDaemon(CassandraPaths cassandraPaths, CassandraDaemonTask cassandraDaemonTask,
-                    boolean metricsEnabled) throws UnknownHostException {
+                    boolean metricsEnabled) throws IOException {
 
         final ProcessBuilder builder;
         if(LocalSetupUtils.executorCheckIfLocalSetUp()) {

@@ -2,6 +2,7 @@ package com.mesosphere.dcos.cassandra;
 
 import com.google.common.base.Charsets;
 import org.apache.cassandra.locator.SeedProvider;
+import org.apache.cassandra.locator.SnitchProperties;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.slf4j.Logger;
@@ -47,7 +48,11 @@ public class DcosSeedProvider implements SeedProvider {
             return InetAddress.getByName(libProcessAddress);
         }
     }
-
+    
+	private InetAddress getPublicIp() throws UnknownHostException {
+		String publicIp = (new SnitchProperties()).get("public_ip", "");
+		return (publicIp != null ? InetAddress.getByName(publicIp) : null);
+	}
 
     public List<InetAddress> getRemoteSeeds() throws IOException {
 
@@ -83,7 +88,8 @@ public class DcosSeedProvider implements SeedProvider {
 
         if (isSeed) {
             addresses = new ArrayList<>(seedStrings.size() + 1);
-            addresses.add(getLocalAddress());
+			InetAddress publicIp = getPublicIp();
+			addresses.add(publicIp != null ? publicIp : getLocalAddress());
         } else {
 
             addresses = new ArrayList<>(seedStrings.size());

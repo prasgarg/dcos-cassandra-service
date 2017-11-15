@@ -133,9 +133,23 @@ public class SeedsManager implements Runnable {
                     .getHostAddress());
         }
 
-        return seeds;
+        return getSeedsWithPublicIp(seeds);
     }
 
+	private List<String> getSeedsWithPublicIp(List<String> seeds) throws ConfigStoreException {
+		List<String> seedsWithPublicIp = new ArrayList<>();
+		for (String seed : seeds) {
+			String publicIp = ((CassandraSchedulerConfiguration) configurationManager.getTargetConfig())
+					.getPublicIp(seed);
+			if (publicIp != null) {
+				seedsWithPublicIp.add(publicIp);
+			} else {
+				seedsWithPublicIp.add(seed);
+			}
+		}
+		return seedsWithPublicIp;
+	}
+	
     public int getConfiguredSeedsCount() throws ConfigStoreException {
         return ((CassandraSchedulerConfiguration)configurationManager.getTargetConfig()).getSeeds();
     }
