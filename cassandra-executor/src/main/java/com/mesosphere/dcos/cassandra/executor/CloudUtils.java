@@ -18,7 +18,11 @@ public class CloudUtils {
 
 	public static String getPublicAwsPublicIp() throws UnknownHostException, IOException {
 		try {
-			InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(AWS_PUBLIC_IP_QUERY_URL));
+			String publicIp = awsApiCall(AWS_PUBLIC_IP_QUERY_URL);
+			if (publicIp == null || "".equals(publicIp)) {
+				return null;
+			}
+			InetAddress localPublicAddress = InetAddress.getByName(publicIp);
 			return localPublicAddress.getHostAddress();
 		} catch (ConfigurationException configurationException) {
 			return null;
@@ -27,7 +31,11 @@ public class CloudUtils {
 
 	public static String getPublicAzurePublicIp() throws UnknownHostException, IOException {
 		try {
-			InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(AZURE_PUBLIC_IP_QUERY_URL));
+			String publicIp = azureApiCall(AZURE_PUBLIC_IP_QUERY_URL);
+			if (publicIp == null || "".equals(publicIp)) {
+				return null;
+			}
+			InetAddress localPublicAddress = InetAddress.getByName(publicIp);
 			return localPublicAddress.getHostAddress();
 		} catch (ConfigurationException configurationException) {
 			return null;

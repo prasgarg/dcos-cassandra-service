@@ -56,8 +56,13 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
 		LOGGER.info("EC2Snitch using region: {}, zone: {}.", ec2region, ec2zone);
 		
 		try {
-			InetAddress localPublicAddress = InetAddress.getByName(awsApiCall(PUBLIC_IP_QUERY_URL));
-			publicAddress = localPublicAddress; 
+			String publicIp = awsApiCall(PUBLIC_IP_QUERY_URL);
+			if ("".equals(publicIp) || publicIp == null) {
+				publicAddress = null;
+			} else {
+				publicAddress = InetAddress.getByName(publicIp);
+			}
+			 
 		} catch (ConfigurationException configurationException) {
 			publicAddress = null;
 		}

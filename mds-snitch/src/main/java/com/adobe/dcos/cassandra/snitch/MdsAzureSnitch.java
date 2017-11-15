@@ -67,11 +67,16 @@ public class MdsAzureSnitch extends AbstractNetworkTopologySnitch {
         LOGGER.info("MdsAzureSnitch using region: {}, zone: {}.", azureRegion, faultDomain);
         
 		try {
-			InetAddress localPublicAddress = InetAddress.getByName(azureApiCall(PUBLIC_IP_QUERY_URL));
-			publicAddress = localPublicAddress;
+			String publicIp = azureApiCall(PUBLIC_IP_QUERY_URL);
+			if ("".equals(publicIp) || publicIp == null) {
+				publicAddress = null;
+			} else {
+				publicAddress = InetAddress.getByName(publicIp);
+			}
 		} catch (ConfigurationException configurationException) {
 			publicAddress = null;
 		}
+		
 		LOGGER.info("MdsAzureSnitch using publicIP as identifier: {}", publicAddress);
         localPrivateAddress = azureApiCall(PRIVATE_IP_QUERY_URL);
         // use the Public IP to broadcast Address to other nodes.
