@@ -121,6 +121,7 @@ api_port : ${API_PORT:-8080}
 dc_sync_ms : ${DC_SYNC_MS:-60000}
 dc_url : "${DC_URL:-http://${SERVICE_NAME:-cassandra}.marathon.mesos:${API_PORT:-8080}/v1/datacenter}"
 external_dcs : ${EXTERNAL_DCS:-""}
+external_dcs_seeds : ${EXTERNAL_DCS_SEEDS:-""}
 service:
   name : ${SERVICE_NAME:-"cassandra"}
   version : ${SERVICE_VERSION:-"0.1.0"}

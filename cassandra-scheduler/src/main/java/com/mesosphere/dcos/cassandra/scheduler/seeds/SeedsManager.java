@@ -1,15 +1,17 @@
 package com.mesosphere.dcos.cassandra.scheduler.seeds;
 
 
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
-import com.mesosphere.dcos.cassandra.common.tasks.CassandraDaemonTask;
-import com.mesosphere.dcos.cassandra.common.tasks.CassandraMode;
-import com.mesosphere.dcos.cassandra.scheduler.client.SchedulerClient;
-import com.mesosphere.dcos.cassandra.common.config.CassandraSchedulerConfiguration;
-import com.mesosphere.dcos.cassandra.common.config.DefaultConfigurationManager;
-import com.mesosphere.dcos.cassandra.scheduler.resources.SeedsResponse;
-import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.config.SerializationUtils;
 import org.apache.mesos.state.JsonSerializer;
@@ -18,14 +20,15 @@ import org.apache.mesos.state.StateStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
+import com.mesosphere.dcos.cassandra.common.config.CassandraSchedulerConfiguration;
+import com.mesosphere.dcos.cassandra.common.config.DefaultConfigurationManager;
+import com.mesosphere.dcos.cassandra.common.tasks.CassandraDaemonTask;
+import com.mesosphere.dcos.cassandra.common.tasks.CassandraMode;
+import com.mesosphere.dcos.cassandra.common.tasks.CassandraState;
+import com.mesosphere.dcos.cassandra.scheduler.client.SchedulerClient;
+import com.mesosphere.dcos.cassandra.scheduler.resources.SeedsResponse;
 
 public class SeedsManager implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(SeedsManager.class);
@@ -34,6 +37,9 @@ public class SeedsManager implements Runnable {
     private final CassandraState tasks;
     private static final String DATA_CENTERS_KEY = "datacenters";
     private volatile ImmutableMap<String, DataCenterInfo> dataCenters;
+    
+	private final HashMap<String, List<String>> dcToSeedsMap;
+	
     private final SchedulerClient client;
     private DefaultConfigurationManager configurationManager;
     private final StateStore stateStore;
@@ -77,6 +83,11 @@ public class SeedsManager implements Runnable {
         this.tasks = tasks;
         this.stateStore = stateStore;
         this.configurationManager = configurationManager;
+        
+        // currently we are passing external DCS seeds nodes ip
+		dcToSeedsMap = new HashMap<>();
+		populateExternalDcsSeedsNodes();
+		
         ImmutableMap.Builder<String, DataCenterInfo> builder =
                 ImmutableMap.<String, DataCenterInfo>builder();
         this.client = client;
@@ -115,6 +126,33 @@ public class SeedsManager implements Runnable {
                 TimeUnit.MILLISECONDS);
     }
 
+	private void populateExternalDcsSeedsNodes() throws ConfigStoreException {
+		LOGGER.info("Populating external data centers seed nodes");
+		final CassandraSchedulerConfiguration configuration = (CassandraSchedulerConfiguration)
+                configurationManager.getTargetConfig();
+		
+		String externalDcsSeeds = configuration.getExternalDcsSeeds();
+		LOGGER.info("External seeds nodes ip : {}", externalDcsSeeds);
+		
+		if (externalDcsSeeds == null || "".equals(externalDcsSeeds)) {
+			return;
+		}
+		
+		String[] externalDcsSeedsInfo = externalDcsSeeds.split("\\|");
+		
+		for (String externalDcInfo : externalDcsSeedsInfo) {
+			String[] dcInfo = externalDcInfo.split(":");
+			if (dcInfo == null || "".equals(dcInfo)) {
+				continue;
+			}
+
+			if (dcInfo.length != 2) {
+				throw new RuntimeException("invalid external-dcs format");
+			}
+			dcToSeedsMap.put(dcInfo[0], Arrays.asList(dcInfo[1].split(",")));
+		}
+	}
+	
     public List<String> getLocalSeeds() throws IOException {
         final List<CassandraDaemonTask> active = tasks.getDaemons().values()
                 .stream()
@@ -173,11 +211,18 @@ public class SeedsManager implements Runnable {
         return false;
     }
 
-    public List<String> getRemoteSeeds() {
-        return dataCenters.values().stream().map(
-                dc -> dc.getSeeds()).flatMap
-                (List::stream).collect(Collectors.toList());
-    }
+	public List<String> getRemoteSeeds() {
+		List<String> hardCodedSeeds = new ArrayList<>();
+		dcToSeedsMap.values().stream().forEach(dc -> {
+			hardCodedSeeds.addAll(dc);
+		});
+		List<String> externalDcSeedsViaUrl = dataCenters.values().stream().map(dc -> dc.getSeeds())
+				.flatMap(List::stream).collect(Collectors.toList());
+		List<String> totalSeeds = new ArrayList<>(hardCodedSeeds.size() + externalDcSeedsViaUrl.size());
+		totalSeeds.addAll(hardCodedSeeds);
+		totalSeeds.addAll(externalDcSeedsViaUrl);
+		return totalSeeds;
+	}
 
     public void update(final DataCenterInfo info) throws IOException {
         LOGGER.info("Updating data center {}", info);
