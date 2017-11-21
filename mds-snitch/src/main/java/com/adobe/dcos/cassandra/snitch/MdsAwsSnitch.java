@@ -74,10 +74,10 @@ public class MdsAwsSnitch extends AbstractNetworkTopologySnitch {
         
 		if (publicAddress != null) {
 			DatabaseDescriptor.setBroadcastAddress(publicAddress);
-			if (DatabaseDescriptor.getBroadcastRpcAddress() == null) {
+			/*if (DatabaseDescriptor.getBroadcastRpcAddress() == null) {
 				LOGGER.info("broadcast_rpc_address unset, broadcasting public IP as rpc_address: {}", publicAddress);
 				DatabaseDescriptor.setBroadcastRpcAddress(publicAddress);
-			}
+			}*/
 		}
 	}
 
