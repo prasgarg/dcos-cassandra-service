@@ -88,6 +88,11 @@
 					"type": "string",
 					"description": "A comma separated list of the URLs from which this service instance retrieves data center info to form a cluster spanning multiple data centers."
 				},
+				"external_data_center_seeds": {
+					"id": "http://cassandra/docs/mesosphere.com/service/external_data_center_seeds",
+					"type": "string",
+					"description": "A comma separated list of the seeds. Ex: <dc1>:<seed-ip1>,<seed-ip2>|<dc2>:<seed-ip1>,<seed-ip2>"
+				},
 				"enable_upgrade_sstable_endpoint": {
 					"id": "http://cassandra/docs/mesosphere.com/cassandra/enableUpgradeSstableEndpoint",
 					"type": "boolean",

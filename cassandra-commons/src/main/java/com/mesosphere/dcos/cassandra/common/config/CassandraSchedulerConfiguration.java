@@ -40,6 +40,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
     @JsonProperty("service") final ServiceConfig serviceConfig,
     @JsonProperty("external_dc_sync_ms") final long externalDcSyncMs,
     @JsonProperty("external_dcs") final String externalDcs,
+    @JsonProperty("external_dcs_seeds") final String externalDcsSeeds,
     @JsonProperty("dc_url") final String dcUrl,
     @JsonProperty("phase_strategy") final String phaseStrategy,
     @JsonProperty("enable_upgrade_sstable_endpoint") final boolean enableUpgradeSSTableEndpoint,
@@ -57,6 +58,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
       serviceConfig,
       externalDcSyncMs,
       externalDcs,
+      externalDcsSeeds,
       dcUrl,
       phaseStrategy,
       enableUpgradeSSTableEndpoint,
@@ -90,6 +92,8 @@ public class CassandraSchedulerConfiguration implements Configuration {
   @JsonIgnore
   private final String externalDcs;
   @JsonIgnore
+  private final String externalDcsSeeds;
+  @JsonIgnore
   private final String dcUrl;
   @JsonIgnore
   private final String phaseStrategy;
@@ -112,6 +116,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
     int apiPort, ServiceConfig serviceConfig,
     long externalDcSyncMs,
     String externalDcs,
+    String externalDcsSeeds,
     String dcUrl,
     String phaseStrategy,
     boolean enableUpgradeSSTableEndpoint,
@@ -127,6 +132,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
     this.serviceConfig = serviceConfig;
     this.externalDcSyncMs = externalDcSyncMs;
     this.externalDcs = externalDcs;
+    this.externalDcsSeeds = externalDcsSeeds;
     this.dcUrl = dcUrl;
     this.phaseStrategy = phaseStrategy;
     this.enableUpgradeSSTableEndpoint = enableUpgradeSSTableEndpoint;
@@ -188,6 +194,11 @@ public class CassandraSchedulerConfiguration implements Configuration {
   public String getExternalDcs() {
     return externalDcs;
   }
+  
+  @JsonProperty("external_dcs_seeds")
+  public String getExternalDcsSeeds() {
+    return externalDcsSeeds;
+  }
 
   @JsonProperty("dc_url")
   public String getDcUrl() {
@@ -221,6 +232,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
       Objects.equals(clusterTaskConfig, that.clusterTaskConfig) &&
       Objects.equals(serviceConfig, that.serviceConfig) &&
       Objects.equals(externalDcs, that.externalDcs) &&
+      Objects.equals(externalDcsSeeds, that.externalDcsSeeds) &&
       Objects.equals(dcUrl, that.dcUrl) &&
       Objects.equals(phaseStrategy, that.phaseStrategy) &&
       Objects.equals(httpClientConfiguration, that.httpClientConfiguration);
@@ -239,6 +251,7 @@ public class CassandraSchedulerConfiguration implements Configuration {
       serviceConfig,
       externalDcSyncMs,
       externalDcs,
+      externalDcsSeeds,
       dcUrl,
       phaseStrategy,
       enableUpgradeSSTableEndpoint,

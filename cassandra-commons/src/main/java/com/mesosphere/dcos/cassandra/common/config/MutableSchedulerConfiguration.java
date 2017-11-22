@@ -37,6 +37,7 @@ public class MutableSchedulerConfiguration extends Configuration {
       "");
   private long externalDcSyncMs;
   private String externalDcs;
+  private String externalDcsSeeds;
   private String dcUrl;
   private String phaseStrategy;
   private boolean enableUpgradeSSTableEndpoint;
@@ -194,10 +195,20 @@ public class MutableSchedulerConfiguration extends Configuration {
   public String getExternalDcs() {
     return externalDcs;
   }
+  
+  @JsonProperty("external_dcs_seeds")
+  public String getExternalDcsSeeds() {
+    return externalDcsSeeds;
+  }
 
   @JsonProperty("external_dcs")
   public void setExternalDcs(String externalDcs) {
     this.externalDcs = externalDcs;
+  }
+  
+  @JsonProperty("external_dcs_seeds")
+  public void setExternalDcsSeeds(String externalDcsSeeds) {
+    this.externalDcsSeeds = externalDcsSeeds;
   }
 
   @JsonProperty("enable_upgrade_sstable_endpoint")
@@ -230,6 +241,7 @@ public class MutableSchedulerConfiguration extends Configuration {
       serviceConfig,
       externalDcSyncMs,
       externalDcs,
+      externalDcsSeeds,
       dcUrl,
       phaseStrategy,
       enableUpgradeSSTableEndpoint,
@@ -256,6 +268,7 @@ public class MutableSchedulerConfiguration extends Configuration {
       Objects.equals(mesosConfig, that.mesosConfig) &&
       Objects.equals(curatorConfig, that.curatorConfig) &&
       Objects.equals(externalDcs, that.externalDcs) &&
+      Objects.equals(externalDcsSeeds, that.externalDcsSeeds) &&
       Objects.equals(dcUrl, that.dcUrl) &&
       Objects.equals(httpClientConfiguration, that.httpClientConfiguration);
   }
@@ -264,7 +277,7 @@ public class MutableSchedulerConfiguration extends Configuration {
   public int hashCode() {
     return Objects.hash(executorConfig, servers, seeds, zones, placementConstraint, cassandraConfig,
       clusterTaskConfig, apiPort, serviceConfig, mesosConfig, curatorConfig,
-      externalDcSyncMs, externalDcs, dcUrl, enableUpgradeSSTableEndpoint, httpClientConfiguration);
+      externalDcSyncMs, externalDcs,externalDcsSeeds, dcUrl, enableUpgradeSSTableEndpoint, httpClientConfiguration);
   }
 
   @Override
