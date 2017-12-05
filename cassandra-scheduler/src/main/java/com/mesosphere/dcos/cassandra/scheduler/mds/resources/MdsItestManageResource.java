@@ -328,7 +328,7 @@ public class MdsItestManageResource {
 		try (Session session = MdsCassandraUtills.getSession(cassandraAuth, capabilities, state,
 		        configurationManager)) {
 			PreparedStatement ps = session
-			        .prepare("select * from stresscql.typestest where expr(lucene_index,'{}');");
+			        .prepare("select * from stresscql.typestest where expr(lucene_index,'{filter:{type:\"prefix\",field:\"name\",value:\"a\"}}');");
 			BoundStatement boundStatement = ps.bind();
 			LOGGER.info("stress query string = " + ps.getQueryString());
 			ResultSet rs = session.execute(boundStatement);
